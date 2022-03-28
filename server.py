@@ -2,10 +2,11 @@ from socket import *
 from xml.dom.minidom import Element
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
+import pymongo
+import re
 
 global serverPort
-serverPort = 2524
-
+serverPort = 2546
 
 def doTask(msg: str):
     msg = msg.split(sep = '\n')
@@ -26,9 +27,94 @@ def doTask(msg: str):
         databaseName = msg[1]
         tableName = msg[2]
         retval = deleteTable(databaseName,tableName)
+    elif command == 'Insert':
+        databaseName = msg[1]
+        tableName = msg[2]
+        data = msg[3]
+        retval = insertData(databaseName, tableName, data)
     
     root = ET.parse('Catalog.xml').getroot()
     return retval
+
+def insertData(databaseName, tableName, data):
+    data = data[1:]
+    data = data[:-1]
+    data = data.split(sep = ',')
+
+
+
+    database = None
+    for db in root:
+        if db.attrib['dataBaseName'] == databaseName:
+            database = db
+            break
+        
+    if db == None:
+        return -1 # Trying to delete from non-existing database
+
+
+    for tb in database:
+        if tb.attrib['tableName'] == tableName:
+            table = tb
+
+    print(database.attrib['dataBaseName'],table.attrib['tableName'])
+
+    i = 0
+
+    pk = table.findall('.//primaryKey//pkAttribute')[0].text
+
+    msg = ''
+
+    for column in table.findall('.//Structure//Attribute'):
+        print(column.attrib['type'])
+        print(data[i])
+        
+        if column.attrib['type'] == 'bit':
+            if re.search('^[01]$',data[i]) == None:
+                return -1
+        elif column.attrib['type'] == 'int':
+            if re.search('^\d+$',data[i]) == None:
+                return -1
+        elif column.attrib['type'] == 'float':
+            if re.search('^[+-]?[0-9]+.[0-9]+$',data[i]) == None:
+                return -1
+        elif column.attrib['type'] == 'string':
+            if re.search('.*',data[i]) == None:
+                return -1
+        elif column.attrib['type'] == 'date':
+            if re.search('^\d{4}\-(0?[1-9]|1[012])\-(0?[1-9]|[12][0-9]|3[01])$',data[i]) == None:
+                return -1
+        elif column.attrib['type'] == 'datetime':
+            if re.search('^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1]) (2[0-3]|[01][0-9]):[0-5][0-9]$',data[i]) == None:
+                return -1
+
+        if column.attrib['attributeName'] != pk:
+            if msg == '':
+                msg += data[i]
+            else:
+                msg += '#' + data[i]
+        else:
+            pk = data[i]
+  
+        i += 1
+
+    
+    print(pk)
+    print(msg)
+
+    data = {
+        "_id":pk,
+        "Value":msg
+        }
+
+    database = mongoclient.get_database(databaseName)
+    collection = database.get_collection(tableName)
+    try:
+        collection.insert_one(data)
+    except:
+        return -2
+    
+    return 0
 
 def deleteDatabase(databaseName: str):
     for db in root:
@@ -185,8 +271,9 @@ if __name__ == '__main__':
     serverSocket.listen(10)
 
     print("Server is starting")
-    global tree, root
+    global tree, root, mongoclient
     tree = ET.parse('Catalog.xml')
+    mongoclient = pymongo.MongoClient("mongodb+srv://istu:Ceruza12.@cluster0.n8gxh.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
     root = tree.getroot()
     #print(root)
  

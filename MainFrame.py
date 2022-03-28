@@ -4,7 +4,7 @@ from CDFrame import CDFrame as CDF
 from CTFrame import CTFrame as CTF
 from DDFrame import DDFrame as DDF
 from DTFrame import DTFrame as DTF
-
+from InsertFrame import InsertFrame as IF
 
 class MainFrame:
     def __init__(self):
@@ -15,6 +15,7 @@ class MainFrame:
         self.CTButton = self.createButton(self.window, 'Create Table', 350, 350, self.createTable)
         self.DDButton = self.createButton(self.window, 'Drop Database', 620, 200, self.deleteDatabase)
         self.DTButton = self.createButton(self.window, 'Drop Table', 620, 350, self.deleteTable)
+        self.InsertButton = self.createButton(self.window, 'Insert', 350, 500, self.insertData)
         self.window.mainloop()
 
     def createButton(self, window: Tk, t: str, xx: int, yy :int, func):
@@ -40,6 +41,11 @@ class MainFrame:
         CTFrame = DTF(self)
         self.close()
         CTFrame.start()
+
+    def insertData(self):
+        InsertFrame = IF(self)
+        self.close()
+        InsertFrame.start()
 
     def show(self):
         self.window.deiconify()

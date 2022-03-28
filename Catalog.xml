@@ -31,6 +31,23 @@
 				</IndexFile>
 			</IndexFiles>
 		</Table>
+		<Table tableName="Apad" rowLength="1">
+			<Structure>
+				<Attribute attributeName="asd" type="float" />
+			</Structure>
+			<primaryKey />
+			<uniqueKeys />
+			<foreignKeys>
+				<foreignKey>
+					<foreignAttribute>asd</foreignAttribute>
+					<references>
+						<refTable>Alma</refTable>
+						<refAttr>PirosAlma</refAttr>
+					</references>
+				</foreignKey>
+			</foreignKeys>
+			<IndexFiles />
+		</Table>
 	</DataBase>
 	<DataBase dataBaseName="Zoldseg">
 		<Table tableName="Paradicsom" rowLength="1">
@@ -55,7 +72,6 @@
 			</Structure>
 			<primaryKey>
 				<pkAttribute>ZoldSzilva</pkAttribute>
-				<pkAttribute>KekSzilva</pkAttribute>
 			</primaryKey>
 			<uniqueKeys>
 				<UniqueAttribute>ZoldSzilva</UniqueAttribute>
