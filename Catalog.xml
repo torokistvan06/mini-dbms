@@ -1,0 +1,84 @@
+<Databases>
+	<DataBase dataBaseName="Gyumolcs">
+		<Table tableName="Alma" rowLength="3">
+			<Structure>
+				<Attribute attributeName="PirosAlma" type="bit" />
+				<Attribute attributeName="ZoldAlma" type="string" />
+				<Attribute attributeName="KisAlma" type="int" />
+			</Structure>
+			<primaryKey>
+				<pkAttribute>ZoldAlma</pkAttribute>
+			</primaryKey>
+			<uniqueKeys>
+				<UniqueAttribute>PirosAlma</UniqueAttribute>
+			</uniqueKeys>
+			<foreignKeys />
+			<IndexFiles>
+				<IndexFile indexName="PirosAlma.ind" isUnique="1" indexType="BTree">
+					<IndexAttributes>
+						<IAttribute>PirosAlma</IAttribute>
+					</IndexAttributes>
+				</IndexFile>
+				<IndexFile indexName="Alma.ZoldAlma.ind" isUnique="0" indexType="BTree">
+					<IndexAttributes>
+						<IAttribute>ZoldAlma</IAttribute>
+					</IndexAttributes>
+				</IndexFile>
+				<IndexFile indexName="KisAlma.ind" isUnique="0" indexType="BTree">
+					<IndexAttributes>
+						<IAttribute>KisAlma</IAttribute>
+					</IndexAttributes>
+				</IndexFile>
+			</IndexFiles>
+		</Table>
+	</DataBase>
+	<DataBase dataBaseName="Zoldseg">
+		<Table tableName="Paradicsom" rowLength="1">
+			<Structure>
+				<Attribute attributeName="KisParadicsom" type="int" />
+			</Structure>
+			<primaryKey />
+			<uniqueKeys>
+				<UniqueAttribute>KisParadicsom</UniqueAttribute>
+			</uniqueKeys>
+			<foreignKeys />
+			<IndexFiles />
+		</Table>
+	</DataBase>
+	<DataBase dataBaseName="Gyumolcsok">
+		<Table tableName="Szilva" rowLength="4">
+			<Structure>
+				<Attribute attributeName="ZoldSzilva" type="bit" />
+				<Attribute attributeName="PirosSzilva" type="date" />
+				<Attribute attributeName="KekSzilva" type="datetime" />
+				<Attribute attributeName="Szilvacska" type="bit" />
+			</Structure>
+			<primaryKey>
+				<pkAttribute>ZoldSzilva</pkAttribute>
+				<pkAttribute>KekSzilva</pkAttribute>
+			</primaryKey>
+			<uniqueKeys>
+				<UniqueAttribute>ZoldSzilva</UniqueAttribute>
+				<UniqueAttribute>KekSzilva</UniqueAttribute>
+			</uniqueKeys>
+			<foreignKeys />
+			<IndexFiles>
+				<IndexFile indexName="Szilva.ZoldSzilva.ind" isUnique="1" indexType="BTree">
+					<IndexAttributes>
+						<IAttribute>ZoldSzilva</IAttribute>
+					</IndexAttributes>
+				</IndexFile>
+				<IndexFile indexName="Szilva.KekSzilva.ind" isUnique="1" indexType="BTree">
+					<IndexAttributes>
+						<IAttribute>KekSzilva</IAttribute>
+					</IndexAttributes>
+				</IndexFile>
+				<IndexFile indexName="Szilvacska.ind" isUnique="0" indexType="BTree">
+					<IndexAttributes>
+						<IAttribute>Szilvacska</IAttribute>
+					</IndexAttributes>
+				</IndexFile>
+			</IndexFiles>
+		</Table>
+	</DataBase>
+</Databases>
