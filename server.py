@@ -41,8 +41,6 @@ def insertData(databaseName, tableName, data):
     data = data[:-1]
     data = data.split(sep = ',')
 
-
-
     database = None
     for db in root:
         if db.attrib['dataBaseName'] == databaseName:
@@ -50,25 +48,28 @@ def insertData(databaseName, tableName, data):
             break
         
     if db == None:
-        return -1 # Trying to delete from non-existing database
+        return -2 # Trying to delete from non-existing database
 
-
+    table = None
     for tb in database:
         if tb.attrib['tableName'] == tableName:
             table = tb
 
+    if table == None:
+        return -3 # Trying to delete from non-existing table
+
     print(database.attrib['dataBaseName'],table.attrib['tableName'])
 
     i = 0
-
     pk = table.findall('.//primaryKey//pkAttribute')[0].text
-
     msg = ''
 
     for column in table.findall('.//Structure//Attribute'):
         print(column.attrib['type'])
         print(data[i])
         
+        # Typeerror
+
         if column.attrib['type'] == 'bit':
             if re.search('^[01]$',data[i]) == None:
                 return -1
@@ -112,9 +113,9 @@ def insertData(databaseName, tableName, data):
     try:
         collection.insert_one(data)
     except:
-        return -2
+        return -4 # Failed to insert because PK exists
     
-    return 0
+    return 0 # Successful insert
 
 def deleteDatabase(databaseName: str):
     for db in root:
