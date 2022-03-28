@@ -2,6 +2,7 @@ from time import sleep
 from tkinter import *
 from socket import *
 from server import serverPort
+from tkinter import messagebox
 
 class DDFrame:
     def __init__(self, mainFrame: Tk):
@@ -29,7 +30,8 @@ class DDFrame:
         if msg == '0':
             print('Successfully deleted database')
         if msg == '-1':
-            print('Trying to delete non-existing database')
+            messagebox.showerror("Error", "Trying to delete non-existing database!")
+            #print('Trying to delete non-existing database')
         clientSocket.close()
 
         self.destroy()

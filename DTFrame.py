@@ -2,6 +2,7 @@ from time import sleep
 from tkinter import *
 from socket import *
 from server import serverPort
+from tkinter import messagebox
 
 class DTFrame:
     def __init__(self, mainFrame: Tk):
@@ -32,11 +33,14 @@ class DTFrame:
         if msg == '0':
             print('Successfully deleted table')
         if msg == '-1':
-            print('Trying to delete from non-existing database')
+            messagebox.showerror("Error", "Trying to delete from non-existing database!")
+            #print('Trying to delete from non-existing database')
         elif msg == '-2':
-            print('Trying to delete non-existing table')
+            messagebox.showerror("Error", "Trying to delete non-existing table!")
+            #print('Trying to delete non-existing table')
         elif msg == '-3':
-            print('Trying to delete table that is referenced by another table')
+            messagebox.showerror("Error", "Trying to delete table that is referenced by another table!")
+            #print('Trying to delete table that is referenced by another table')
         clientSocket.close()
 
         self.destroy()

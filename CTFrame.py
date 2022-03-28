@@ -4,7 +4,7 @@ from tkinter import ttk
 import tkinter as tk
 from CTRow import CTRow
 from server import serverPort
-
+from tkinter import messagebox
 
 class CTFrame:
     def __init__(self, mainFrame: Tk):
@@ -61,20 +61,19 @@ class CTFrame:
         if msg == '0':
             print('Table created successfully')
         elif msg == '-1':
-            print('Trying to create table in non-existing database')
+            messagebox.showerror("Error", "Trying to create table in non-existing database!")
+            #print('Trying to create table in non-existing database')
         elif msg == '-2':
-            print('Trying to create existing table')
+            messagebox.showerror("Error", "Trying to create existing table!")
+            #print('Trying to create existing table')
         elif msg == '-3':
-            print('Reference on non-existing table')
+            messagebox.showerror("Error", "Reference on non-existing table!")
+            #print('Reference on non-existing table')
         elif msg == '-4':
-            print('Reference on non-existing column in table')
+            messagebox.showerror("Error", "Reference on non-existing column in table!")
+            #print('Reference on non-existing column in table')
             
-
-
         clientSocket.close()
-        
-        
-
         self.destroy()
         self.mainFrame.show()
 

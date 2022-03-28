@@ -6,7 +6,7 @@ import pymongo
 import re
 
 global serverPort
-serverPort = 2546
+serverPort = 2548
 
 def doTask(msg: str):
     msg = msg.split(sep = '\n')
@@ -99,7 +99,6 @@ def insertData(databaseName, tableName, data):
   
         i += 1
 
-    
     print(pk)
     print(msg)
 
@@ -274,7 +273,7 @@ if __name__ == '__main__':
     print("Server is starting")
     global tree, root, mongoclient
     tree = ET.parse('Catalog.xml')
-    mongoclient = pymongo.MongoClient("mongodb+srv://istu:Ceruza12.@cluster0.n8gxh.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
+    mongoclient = pymongo.MongoClient("mongodb+srv://robi:ceruza12@cluster0.iwtua.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
     root = tree.getroot()
     #print(root)
  

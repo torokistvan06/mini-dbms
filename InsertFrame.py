@@ -4,6 +4,7 @@ from tkinter import ttk
 import tkinter as tk
 from CTRow import CTRow
 from server import serverPort
+from tkinter import messagebox
 
 class InsertFrame:
     def __init__(self, mainFrame):
@@ -41,13 +42,17 @@ class InsertFrame:
         if msg == '0':
             print('Data inserted successfully')
         elif msg == '-1':
-            print('Wrong input types')
+            messagebox.showerror("Error", "Wrong input types!")
+            #print('Wrong input types')
         elif msg == '-2':
-            print('Primary Key already exists in database')
+            messagebox.showerror("Error", "Primary Key already exists in database!")
+            #print('Primary Key already exists in database')
         elif msg == '-3':
-            print('Reference on non-existing table')
+            messagebox.showerror("Error", "Reference on non-existing table!")
+            #print('Reference on non-existing table')
         elif msg == '-4':
-            print('Reference on non-existing column in table')
+            messagebox.showerror("Error", "Reference on non-existing column in table!")
+            #print('Reference on non-existing column in table')
             
         clientSocket.close()
 

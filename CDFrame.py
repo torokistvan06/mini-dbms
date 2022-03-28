@@ -1,6 +1,7 @@
 from tkinter import *
 from socket import *
 from server import serverPort
+from tkinter import messagebox
 
 class CDFrame:
     def __init__(self, mainFrame: Tk):
@@ -30,9 +31,13 @@ class CDFrame:
         if msg == '0':
             print('Database succesfully created')
         elif msg == '-1':
-            print("Trying to create existing database")
+            messagebox.showerror("Error", "Database already exists!")
+            #print("Trying to create existing database")
 
         clientSocket.close()
+
+
+
         self.destroy()
         self.mainFrame.show()
 
