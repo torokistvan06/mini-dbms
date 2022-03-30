@@ -1,1 +1,1 @@
-print('Geeks' != 'geeks')
+print(eval('12 < 20'))

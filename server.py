@@ -5,7 +5,7 @@ import pymongo
 import re
 
 global serverPort
-serverPort = 5035
+serverPort = 63003
 
 def doTask(msg: str):
     msg = msg.split(sep = '\n')
@@ -164,7 +164,7 @@ def deleteData(databaseName, tableName, conditions):
         bigdict.append(anyad)
         
     bigdictcopy = bigdict
-    separators.append('asd')
+    separators.append('or')
 
 
     for i,compare in enumerate(toCompare):
@@ -172,10 +172,10 @@ def deleteData(databaseName, tableName, conditions):
         if compare == pk:
             json2[ops[i]] = comparators[i]
             json['_id'] = json2
-            collection.delete_one(json)
+            collection.delete_many(json)
         else:
+            deleteThis = []
             if types[compare] == 'string':
-                deleteThis = []
                 for dicti in bigdict:
                     if dicti[compare] == comparators[i] and operators[i] == '=':
                         deleteThis.append(dicti)
@@ -189,10 +189,8 @@ def deleteData(databaseName, tableName, conditions):
                         deleteThis.append(dicti)
                     elif dicti[compare] > comparators[i] and operators[i] == '>':
                         deleteThis.append(dicti)
-
-                for dicti in bigdict:
-                    if dicti not in deleteThis:
-                        bigdict.remove(dicti)
+                    elif separators[i-1] == 'and'  and i != 0:
+                        deleteThis.remove(dicti)
 
             elif types[compare] != 'date' and types[compare] != 'datetime':
                 for dicti in bigdict:
@@ -200,10 +198,11 @@ def deleteData(databaseName, tableName, conditions):
                         evalthis = dicti[compare] + operators[i] + operators[i] + comparators[i]
                     else:
                         evalthis = dicti[compare] + operators[i] + comparators[i]
-                    if eval(evalthis) == False:
-                        bigdict.remove(dicti)
+                    if eval(evalthis) == True:
+                        deleteThis.append(dicti)
+                    elif separators[i-1] == 'and'  and i != 0:
+                        deleteThis.remove(dicti)
             else:
-                deleteThis = []
                 for dicti in bigdict:
                     if types[compare] == 'date':
                         date1 = datetime.datetime.strptime(dicti[compare],'%Y-%m-%d')
@@ -225,25 +224,16 @@ def deleteData(databaseName, tableName, conditions):
                         deleteThis.append(dicti)
                     elif diff > 0 and operators[i] == '>':
                         deleteThis.append(dicti)
+                    elif separators[i-1] == 'and'  and i != 0:
+                        deleteThis.remove(dicti)
 
-                for dicti in bigdict:
-                    if dicti not in deleteThis:
-                        bigdict.remove(dicti)
-
-            if separators[i] == 'or':  
-                for dicti in bigdict:
+            if separators[i] == 'or' or i == len(toCompare):  
+                for dicti in deleteThis:
                     json['_id'] = dicti['key']
                     collection.delete_one(json)
-                bigdict = bigdictcopy
+                deleteThis = []
             elif separators[i] == 'and':
                 pass
-    
-    for dicti in bigdict:
-        json['_id'] = dicti['key']
-        collection.delete_one(json)
-
-
-
 
 def insertData(databaseName, tableName, data):
     data = data[1:]
