@@ -1,54 +1,4 @@
 <Databases>
-	<DataBase dataBaseName="Gyumolcs">
-		<Table tableName="Alma" rowLength="3">
-			<Structure>
-				<Attribute attributeName="PirosAlma" type="bit" />
-				<Attribute attributeName="ZoldAlma" type="string" />
-				<Attribute attributeName="KisAlma" type="int" />
-			</Structure>
-			<primaryKey>
-				<pkAttribute>ZoldAlma</pkAttribute>
-			</primaryKey>
-			<uniqueKeys>
-				<UniqueAttribute>PirosAlma</UniqueAttribute>
-			</uniqueKeys>
-			<foreignKeys />
-			<IndexFiles>
-				<IndexFile indexName="PirosAlma.ind" isUnique="1" indexType="BTree">
-					<IndexAttributes>
-						<IAttribute>PirosAlma</IAttribute>
-					</IndexAttributes>
-				</IndexFile>
-				<IndexFile indexName="Alma.ZoldAlma.ind" isUnique="0" indexType="BTree">
-					<IndexAttributes>
-						<IAttribute>ZoldAlma</IAttribute>
-					</IndexAttributes>
-				</IndexFile>
-				<IndexFile indexName="KisAlma.ind" isUnique="0" indexType="BTree">
-					<IndexAttributes>
-						<IAttribute>KisAlma</IAttribute>
-					</IndexAttributes>
-				</IndexFile>
-			</IndexFiles>
-		</Table>
-		<Table tableName="Apad" rowLength="1">
-			<Structure>
-				<Attribute attributeName="asd" type="float" />
-			</Structure>
-			<primaryKey />
-			<uniqueKeys />
-			<foreignKeys>
-				<foreignKey>
-					<foreignAttribute>asd</foreignAttribute>
-					<references>
-						<refTable>Alma</refTable>
-						<refAttr>PirosAlma</refAttr>
-					</references>
-				</foreignKey>
-			</foreignKeys>
-			<IndexFiles />
-		</Table>
-	</DataBase>
 	<DataBase dataBaseName="Zoldseg">
 		<Table tableName="Paradicsom" rowLength="1">
 			<Structure>
@@ -99,4 +49,28 @@
 	</DataBase>
 	<DataBase dataBaseName="Ksdfd" />
 	<DataBase dataBaseName="Almafa" />
+	<DataBase dataBaseName="Faszom" />
+	<DataBase dataBaseName="University">
+		<Table tableName="Students" rowLength="3">
+			<Structure>
+				<Attribute attributeName="ID" type="int" />
+				<Attribute attributeName="Name" type="string" />
+				<Attribute attributeName="NrMatricol" type="int" />
+			</Structure>
+			<primaryKey>
+				<pkAttribute>ID</pkAttribute>
+			</primaryKey>
+			<uniqueKeys>
+				<UniqueAttribute>NrMatricol</UniqueAttribute>
+			</uniqueKeys>
+			<foreignKeys />
+			<IndexFiles>
+				<IndexFile indexName="Students.ID.ind" isUnique="0" indexType="BTree">
+					<IndexAttributes>
+						<IAttribute>ID</IAttribute>
+					</IndexAttributes>
+				</IndexFile>
+			</IndexFiles>
+		</Table>
+	</DataBase>
 </Databases>

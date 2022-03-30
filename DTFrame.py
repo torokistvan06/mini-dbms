@@ -31,7 +31,8 @@ class DTFrame:
         clientSocket.send(message.encode())
         msg = clientSocket.recv(256).decode()
         if msg == '0':
-            print('Successfully deleted table')
+            messagebox.showinfo("Success", "Successfully deleted database")
+            #print('Successfully deleted table')
         if msg == '-1':
             messagebox.showerror("Error", "Trying to delete from non-existing database!")
             #print('Trying to delete from non-existing database')

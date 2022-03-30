@@ -1,12 +1,11 @@
+import datetime
 from socket import *
-from xml.dom.minidom import Element
 import xml.etree.ElementTree as ET
-from xml.dom import minidom
 import pymongo
 import re
 
 global serverPort
-serverPort = 2548
+serverPort = 5035
 
 def doTask(msg: str):
     msg = msg.split(sep = '\n')
@@ -32,9 +31,219 @@ def doTask(msg: str):
         tableName = msg[2]
         data = msg[3]
         retval = insertData(databaseName, tableName, data)
+    elif command == 'Delete':
+        databaseName = msg[1]
+        tableName = msg[2]
+        conditions = msg[3]
+        retval = deleteData(databaseName, tableName, conditions)
     
     root = ET.parse('Catalog.xml').getroot()
     return retval
+
+def deleteData(databaseName, tableName, conditions):
+
+    database = None
+    for db in root:
+        if db.attrib['dataBaseName'] == databaseName:
+            database = db
+            break
+        
+    if database == None:
+        return -2 # Trying to delete from non-existing database
+
+    table = None
+    for tb in database:
+        if tb.attrib['tableName'] == tableName:
+            table = tb
+
+    if table == None:
+        return -3 # Trying to delete from non-existing table
+
+    collection = mongoclient.get_database(databaseName).get_collection(tableName)
+
+    separators = [elem for i, elem in enumerate(conditions.split(sep = " "))
+                  if i % 2 == 1]
+
+    conditions = [elem for i, elem in enumerate(conditions.split(sep = " "))
+                  if i % 2 == 0]
+
+    for i in separators:
+        if i != 'and' and i != 'or':
+            return -4 # Wrong input, bad separators
+
+    for i in conditions:
+        if re.search('^[a-zA-Z0-9]+-?[0-9]*-?[0-9]*-?[0-9]*:?[0-9]*(!=|=|[<>]=?)[a-zA-Z0-9]+-?[0-9]*-?[0-9]*-?[0-9]*:?[0-9]*',i) == None:
+            return -5 # Wrong input, bad conditions
+
+    attribs = []
+
+    for i in table.findall('.//Structure//Attribute'):
+        attribs.append(i.attrib['attributeName'])
+
+    columns = []
+    operators = []
+    for condition in conditions:
+        columns.append(re.split(pattern = '(<=)|(>=)|<|>|=',string = condition))
+        operators.append(re.search(pattern = '(<=)|(>=)|<|>|=',string = condition).group(0))
+        
+    
+    toCompare = []
+    comparators = []
+    
+    for i,column in enumerate(columns):
+        newAttrib = None
+        for attribName in attribs:
+            if attribName == column[0]:
+                toCompare.append(column[0])
+                comparators.append(column[3])
+                newAttrib = 1
+            elif attribName == column[3]:
+                comparators.append(column[0])
+                toCompare.append(column[3])
+                newAttrib = 1
+        if newAttrib == None:
+            return -6
+    
+    ops = []
+    for op in operators:
+        if op == '<':
+            op = '$lt'
+        elif op == '<=':
+            op = '$lte'
+        elif op == '=':
+            op = '$eq'
+        elif op == '>':
+            op = '$gt'
+        elif op == '>=':
+            op = '$gte'
+        ops.append(op)
+
+    print(toCompare)
+    print(comparators)
+    print(operators)
+
+    database = None
+    for db in root:
+        if db.attrib['dataBaseName'] == databaseName:
+            database = db
+            break
+
+    table = None
+    for tb in database:
+        if tb.attrib['tableName'] == tableName:
+                table = tb
+
+
+    pk = table.findall('.//primaryKey//pkAttribute')[0].text
+    structure = ''
+    types = {}
+    for column in table.findall('.//Structure//Attribute'):
+        if column.attrib['attributeName'] != pk:
+            structure += (column.attrib['attributeName'] + '#')
+            types[column.attrib['attributeName']] = column.attrib['type']
+
+    structure = structure[:-1]
+    structure = structure.split(sep = '#')
+
+    data = collection.find()
+
+    for i in data:
+        print(i)
+
+    json = {}
+    bigdict = []
+    json2 = {}
+    data = collection.find()
+
+
+    for dat in data:
+        anyad = {}
+        for i,struct in enumerate(structure):
+            anyad[struct] = dat['Value'].split(sep='#')[i]
+            anyad['key'] = dat['_id']
+        bigdict.append(anyad)
+        
+    bigdictcopy = bigdict
+    separators.append('asd')
+
+
+    for i,compare in enumerate(toCompare):
+
+        if compare == pk:
+            json2[ops[i]] = comparators[i]
+            json['_id'] = json2
+            collection.delete_one(json)
+        else:
+            if types[compare] == 'string':
+                deleteThis = []
+                for dicti in bigdict:
+                    if dicti[compare] == comparators[i] and operators[i] == '=':
+                        deleteThis.append(dicti)
+                    elif dicti[compare] != comparators[i] and operators[i] == '!=':
+                        deleteThis.append(dicti)
+                    elif dicti[compare] <= comparators[i] and operators[i] == '<=':
+                        deleteThis.append(dicti)
+                    elif dicti[compare] < comparators[i] and operators[i] == '<':
+                        deleteThis.append(dicti)
+                    elif dicti[compare] >= comparators[i] and operators[i] == '>=':
+                        deleteThis.append(dicti)
+                    elif dicti[compare] > comparators[i] and operators[i] == '>':
+                        deleteThis.append(dicti)
+
+                for dicti in bigdict:
+                    if dicti not in deleteThis:
+                        bigdict.remove(dicti)
+
+            elif types[compare] != 'date' and types[compare] != 'datetime':
+                for dicti in bigdict:
+                    if operators[i] == '=':
+                        evalthis = dicti[compare] + operators[i] + operators[i] + comparators[i]
+                    else:
+                        evalthis = dicti[compare] + operators[i] + comparators[i]
+                    if eval(evalthis) == False:
+                        bigdict.remove(dicti)
+            else:
+                deleteThis = []
+                for dicti in bigdict:
+                    if types[compare] == 'date':
+                        date1 = datetime.datetime.strptime(dicti[compare],'%Y-%m-%d')
+                        date2 = datetime.datetime.strptime(comparators[i],'%Y-%m-%d')
+                        diff = (date1 - date2).days
+                    else:
+                        date1 = datetime.datetime.strptime(dicti[compare],'%Y-%m-%d-%H:%M')
+                        date2 = datetime.datetime.strptime(comparators[i],'%Y-%m-%d-%H:%M')
+                        diff = (date1 - date2).days
+                    if diff == 0 and operators[i] == '=':
+                        deleteThis.append(dicti)
+                    elif diff != 0 and operators[i] == '!=':
+                        deleteThis.append(dicti)
+                    elif diff <= 0 and operators[i] == '<=':
+                        deleteThis.append(dicti)
+                    elif diff < 0 and operators[i] == '<':
+                        deleteThis.append(dicti)
+                    elif diff >= 0 and operators[i] == '>=':
+                        deleteThis.append(dicti)
+                    elif diff > 0 and operators[i] == '>':
+                        deleteThis.append(dicti)
+
+                for dicti in bigdict:
+                    if dicti not in deleteThis:
+                        bigdict.remove(dicti)
+
+            if separators[i] == 'or':  
+                for dicti in bigdict:
+                    json['_id'] = dicti['key']
+                    collection.delete_one(json)
+                bigdict = bigdictcopy
+            elif separators[i] == 'and':
+                pass
+    
+    for dicti in bigdict:
+        json['_id'] = dicti['key']
+        collection.delete_one(json)
+
+
+
 
 def insertData(databaseName, tableName, data):
     data = data[1:]
@@ -47,7 +256,7 @@ def insertData(databaseName, tableName, data):
             database = db
             break
         
-    if db == None:
+    if database == None:
         return -2 # Trying to delete from non-existing database
 
     table = None
@@ -65,13 +274,10 @@ def insertData(databaseName, tableName, data):
     msg = ''
 
     for column in table.findall('.//Structure//Attribute'):
-        print(column.attrib['type'])
-        print(data[i])
-        
         # Typeerror
 
         if column.attrib['type'] == 'bit':
-            if re.search('^[01]$',data[i]) == None:
+            if re.search('^0|1$',data[i]) == None:
                 return -1
         elif column.attrib['type'] == 'int':
             if re.search('^\d+$',data[i]) == None:
@@ -86,7 +292,7 @@ def insertData(databaseName, tableName, data):
             if re.search('^\d{4}\-(0?[1-9]|1[012])\-(0?[1-9]|[12][0-9]|3[01])$',data[i]) == None:
                 return -1
         elif column.attrib['type'] == 'datetime':
-            if re.search('^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1]) (2[0-3]|[01][0-9]):[0-5][0-9]$',data[i]) == None:
+            if re.search('^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])-(2[0-3]|[01][0-9]):[0-5][0-9]$',data[i]) == None:
                 return -1
 
         if column.attrib['attributeName'] != pk:
@@ -99,12 +305,14 @@ def insertData(databaseName, tableName, data):
   
         i += 1
 
-    print(pk)
-    print(msg)
-
-    data = {
-        "_id":pk,
-        "Value":msg
+    if pk != None:
+        data = {
+            "_id":pk,
+            "Value":msg
+            }
+    else:
+        data = {
+            "Value":msg
         }
 
     database = mongoclient.get_database(databaseName)
@@ -113,7 +321,7 @@ def insertData(databaseName, tableName, data):
         collection.insert_one(data)
     except:
         return -4 # Failed to insert because PK exists
-    
+
     return 0 # Successful insert
 
 def deleteDatabase(databaseName: str):
@@ -122,6 +330,7 @@ def deleteDatabase(databaseName: str):
             root.remove(db)
             ET.indent(tree, space = '\t', level = 0)
             tree.write('Catalog.xml', encoding = 'utf-8')
+            mongoclient.drop_database(databaseName)
             return 0 # Successful delete
 
     return -1 # Trying to delete non-existing database
@@ -147,6 +356,7 @@ def deleteTable(databaseName: str, tableName: str):
             database.remove(tb)
             ET.indent(tree, space = '\t', level = 0)
             tree.write('Catalog.xml', encoding = 'utf-8')
+            mongoclient.get_database(databaseName).drop_collection(tableName)
             return 0 # Successful delete
 
     return -2 # Trying to delete non-existing table 
@@ -272,8 +482,8 @@ if __name__ == '__main__':
 
     print("Server is starting")
     global tree, root, mongoclient
+    mongoclient = pymongo.MongoClient("mongodb+srv://istu:Ceruza12.@cluster0.n8gxh.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
     tree = ET.parse('Catalog.xml')
-    mongoclient = pymongo.MongoClient("mongodb+srv://robi:ceruza12@cluster0.iwtua.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
     root = tree.getroot()
     #print(root)
  
