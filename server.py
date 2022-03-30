@@ -157,13 +157,12 @@ def deleteData(databaseName, tableName, conditions):
 
 
     for dat in data:
-        anyad = {}
+        helper = {}
         for i,struct in enumerate(structure):
-            anyad[struct] = dat['Value'].split(sep='#')[i]
-            anyad['key'] = dat['_id']
-        bigdict.append(anyad)
+            helper[struct] = dat['Value'].split(sep='#')[i]
+            helper['key'] = dat['_id']
+        bigdict.append(helper)
         
-    bigdictcopy = bigdict
     separators.append('or')
 
 
