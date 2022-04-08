@@ -1,77 +1,137 @@
 <Databases>
-	<DataBase dataBaseName="Zoldseg">
-		<Table tableName="Paradicsom" rowLength="1">
+	<DataBase dataBaseName="University">
+		<Table tableName="specialization" rowLength="3">
 			<Structure>
-				<Attribute attributeName="KisParadicsom" type="int" />
+				<Attribute attributeName="SpecID" type="string" />
+				<Attribute attributeName="SpecName" type="string" />
+				<Attribute attributeName="Language" type="string" />
 			</Structure>
-			<primaryKey />
-			<uniqueKeys>
-				<UniqueAttribute>KisParadicsom</UniqueAttribute>
-			</uniqueKeys>
+			<primaryKey>
+				<pkAttribute>SpecID</pkAttribute>
+			</primaryKey>
+			<uniqueKeys />
 			<foreignKeys />
 			<IndexFiles />
 		</Table>
-	</DataBase>
-	<DataBase dataBaseName="Gyumolcsok">
-		<Table tableName="Szilva" rowLength="4">
+		<Table tableName="disciplines" rowLength="3">
 			<Structure>
-				<Attribute attributeName="ZoldSzilva" type="bit" />
-				<Attribute attributeName="PirosSzilva" type="date" />
-				<Attribute attributeName="KekSzilva" type="datetime" />
-				<Attribute attributeName="Szilvacska" type="bit" />
+				<Attribute attributeName="DiscID" type="string" />
+				<Attribute attributeName="DName" type="string" />
+				<Attribute attributeName="CreditNr" type="int" />
 			</Structure>
 			<primaryKey>
-				<pkAttribute>ZoldSzilva</pkAttribute>
+				<pkAttribute>DiscID</pkAttribute>
 			</primaryKey>
-			<uniqueKeys>
-				<UniqueAttribute>ZoldSzilva</UniqueAttribute>
-				<UniqueAttribute>KekSzilva</UniqueAttribute>
-			</uniqueKeys>
+			<uniqueKeys />
 			<foreignKeys />
 			<IndexFiles>
-				<IndexFile indexName="Szilva.ZoldSzilva.ind" isUnique="1" indexType="BTree">
+				<IndexFile indexName="disciplines.CreditNr.ind" isUnique="0">
 					<IndexAttributes>
-						<IAttribute>ZoldSzilva</IAttribute>
+						<IAttribute>CreditNr</IAttribute>
 					</IndexAttributes>
 				</IndexFile>
-				<IndexFile indexName="Szilva.KekSzilva.ind" isUnique="1" indexType="BTree">
+			</IndexFiles>
+		</Table>
+		<Table tableName="groups" rowLength="2">
+			<Structure>
+				<Attribute attributeName="GroupID" type="int" />
+				<Attribute attributeName="SpecID" type="string" />
+			</Structure>
+			<primaryKey>
+				<pkAttribute>GroupID</pkAttribute>
+			</primaryKey>
+			<uniqueKeys />
+			<foreignKeys>
+				<foreignKey>
+					<foreignAttribute>SpecID</foreignAttribute>
+					<references>
+						<refTable>specialization</refTable>
+						<refAttr>SpecID</refAttr>
+					</references>
+				</foreignKey>
+			</foreignKeys>
+			<IndexFiles>
+				<IndexFile indexName="groups.SpecID.ind" isUnique="0">
 					<IndexAttributes>
-						<IAttribute>KekSzilva</IAttribute>
+						<IAttribute>SpecID</IAttribute>
 					</IndexAttributes>
 				</IndexFile>
-				<IndexFile indexName="Szilvacska.ind" isUnique="0" indexType="BTree">
+			</IndexFiles>
+		</Table>
+		<Table tableName="students" rowLength="4">
+			<Structure>
+				<Attribute attributeName="StudID" type="int" />
+				<Attribute attributeName="GroupID" type="int" />
+				<Attribute attributeName="StudName" type="string" />
+				<Attribute attributeName="Email" type="string" />
+			</Structure>
+			<primaryKey>
+				<pkAttribute>StudID</pkAttribute>
+			</primaryKey>
+			<uniqueKeys>
+				<UniqueAttribute>Email</UniqueAttribute>
+			</uniqueKeys>
+			<foreignKeys>
+				<foreignKey>
+					<foreignAttribute>GroupID</foreignAttribute>
+					<references>
+						<refTable>groups</refTable>
+						<refAttr>GroupID</refAttr>
+					</references>
+				</foreignKey>
+			</foreignKeys>
+			<IndexFiles>
+				<IndexFile indexName="students.GroupID.ind" isUnique="0">
 					<IndexAttributes>
-						<IAttribute>Szilvacska</IAttribute>
+						<IAttribute>GroupID</IAttribute>
+					</IndexAttributes>
+				</IndexFile>
+				<IndexFile indexName="students.Email.ind" isUnique="1">
+					<IndexAttributes>
+						<IAttribute>Email</IAttribute>
+					</IndexAttributes>
+				</IndexFile>
+			</IndexFiles>
+		</Table>
+		<Table tableName="marks" rowLength="4">
+			<Structure>
+				<Attribute attributeName="MarkID" type="int" />
+				<Attribute attributeName="StudID" type="int" />
+				<Attribute attributeName="DiscID" type="string" />
+				<Attribute attributeName="Mark" type="int" />
+			</Structure>
+			<primaryKey>
+				<pkAttribute>MarkID</pkAttribute>
+			</primaryKey>
+			<uniqueKeys />
+			<foreignKeys>
+				<foreignKey>
+					<foreignAttribute>StudID</foreignAttribute>
+					<references>
+						<refTable>students</refTable>
+						<refAttr>StudID</refAttr>
+					</references>
+				</foreignKey>
+				<foreignKey>
+					<foreignAttribute>DiscID</foreignAttribute>
+					<references>
+						<refTable>disciplines</refTable>
+						<refAttr>DiscID</refAttr>
+					</references>
+				</foreignKey>
+			</foreignKeys>
+			<IndexFiles>
+				<IndexFile indexName="marks.StudID.ind" isUnique="0">
+					<IndexAttributes>
+						<IAttribute>StudID</IAttribute>
+					</IndexAttributes>
+				</IndexFile>
+				<IndexFile indexName="marks.DiscID.ind" isUnique="0">
+					<IndexAttributes>
+						<IAttribute>DiscID</IAttribute>
 					</IndexAttributes>
 				</IndexFile>
 			</IndexFiles>
 		</Table>
 	</DataBase>
-	<DataBase dataBaseName="Ksdfd" />
-	<DataBase dataBaseName="Almafa" />
-	<DataBase dataBaseName="Faszom" />
-	<DataBase dataBaseName="University">
-		<Table tableName="Students" rowLength="3">
-			<Structure>
-				<Attribute attributeName="ID" type="int" />
-				<Attribute attributeName="Name" type="string" />
-				<Attribute attributeName="NrMatricol" type="int" />
-			</Structure>
-			<primaryKey>
-				<pkAttribute>ID</pkAttribute>
-			</primaryKey>
-			<uniqueKeys>
-				<UniqueAttribute>NrMatricol</UniqueAttribute>
-			</uniqueKeys>
-			<foreignKeys />
-			<IndexFiles>
-				<IndexFile indexName="Students.ID.ind" isUnique="0" indexType="BTree">
-					<IndexAttributes>
-						<IAttribute>ID</IAttribute>
-					</IndexAttributes>
-				</IndexFile>
-			</IndexFiles>
-		</Table>
-	</DataBase>
-	<DataBase dataBaseName="ASD" />
 </Databases>

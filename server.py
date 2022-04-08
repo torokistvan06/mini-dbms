@@ -5,7 +5,7 @@ import pymongo
 import re
 
 global serverPort
-serverPort = 63003
+serverPort = 63011
 
 def doTask(msg: str):
     msg = msg.split(sep = '\n')
@@ -40,6 +40,31 @@ def doTask(msg: str):
     root = ET.parse('Catalog.xml').getroot()
     return retval
 
+def createIndex(database, table, indexName, index, key, isUnique):
+    collection = mongoclient.get_database(database).get_collection(table + '.' +  indexName +'.ind')
+    if isUnique == 1:
+        data = {
+            "_id":index,
+            "Value":key
+            }
+        collection.insert_one(data)
+        return 0
+    else:
+        
+        try:
+            val = collection.find({"_id" : index})[0]['Value']
+        except:
+            data = {
+                "_id":index,
+                "Value":key
+                }
+            collection.insert_one(data)
+            return 0
+        
+        collection.update_one({"_id" : index}, { "$set" : {"Value" : val + '#' + key } })
+        return 0
+        
+
 def deleteData(databaseName, tableName, conditions):
 
     database = None
@@ -58,6 +83,8 @@ def deleteData(databaseName, tableName, conditions):
 
     if table == None:
         return -3 # Trying to delete from non-existing table
+
+
 
     collection = mongoclient.get_database(databaseName).get_collection(tableName)
 
@@ -258,10 +285,15 @@ def insertData(databaseName, tableName, data):
 
     print(database.attrib['dataBaseName'],table.attrib['tableName'])
 
-    i = 0
-    pk = table.findall('.//primaryKey//pkAttribute')[0].text
-    msg = ''
+    try:
+        pk = table.findall('.//primaryKey//pkAttribute')
+    except:
+        pk = None
 
+    msg = ''
+    indexes = table.findall('IndexFiles//IndexFile//IndexAttributes//IAttribute')
+    indexfiles = table.findall('IndexFiles//IndexFile')
+    i = 0
     for column in table.findall('.//Structure//Attribute'):
         # Typeerror
 
@@ -269,7 +301,7 @@ def insertData(databaseName, tableName, data):
             if re.search('^0|1$',data[i]) == None:
                 return -1
         elif column.attrib['type'] == 'int':
-            if re.search('^\d+$',data[i]) == None:
+            if re.search('^[0-9]+$',data[i]) == None:
                 return -1
         elif column.attrib['type'] == 'float':
             if re.search('^[+-]?[0-9]+.[0-9]+$',data[i]) == None:
@@ -284,17 +316,23 @@ def insertData(databaseName, tableName, data):
             if re.search('^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])-(2[0-3]|[01][0-9]):[0-5][0-9]$',data[i]) == None:
                 return -1
 
+
         if column.attrib['attributeName'] != pk:
             if msg == '':
                 msg += data[i]
             else:
                 msg += '#' + data[i]
+            
+            for j in range(len(indexes)):
+                if column.attrib['attributeName'] == indexes[j].text:
+                    print(indexes[j].text,indexfiles[j].attrib['isUnique'])
+                    createIndex(databaseName,tableName,indexes[j].text,data[i],pk,indexfiles[j].attrib['isUnique'])
         else:
             pk = data[i]
   
         i += 1
 
-    if pk != None:
+    if pk != '':
         data = {
             "_id":pk,
             "Value":msg
@@ -304,12 +342,16 @@ def insertData(databaseName, tableName, data):
             "Value":msg
         }
 
+
+
     database = mongoclient.get_database(databaseName)
     collection = database.get_collection(tableName)
     try:
-        collection.insert_one(data)
+        collection.insert_one(document=data)
     except:
         return -4 # Failed to insert because PK exists
+
+
 
     return 0 # Successful insert
 
@@ -427,18 +469,16 @@ def createTable(databaseName : str, tableName : str, rows):
         if rowIsUnique:
             ukey = ET.SubElement(ukeys,'UniqueAttribute')
             ukey.text = rowName
+            index = ET.SubElement(indexfiles, 'IndexFile')
+            index.set('indexName',tableName + '.' + rowName + '.ind')
+            index.set('isUnique',str(rowIsUnique))
+            indexAttrs = ET.SubElement(index,'IndexAttributes')
+            indexAttr=  ET.SubElement(indexAttrs,'IAttribute')
+            indexAttr.text = rowName
 
         if rowIsPrimary:
             pkey = ET.SubElement(pkeys,'pkAttribute')
             pkey.text = rowName
-            index = ET.SubElement(indexfiles, 'IndexFile')
-            index.set('indexName',tableName + '.' + rowName + '.ind')
-            #index.set('keyLength') - keylength
-            index.set('isUnique',str(rowIsUnique))
-            index.set('indexType', 'BTree')
-            indexAttrs = ET.SubElement(index,'IndexAttributes')
-            indexAttr=  ET.SubElement(indexAttrs,'IAttribute')
-            indexAttr.text = rowName
 
         if rowIsForeign:
             fkey = ET.SubElement(fkeys,'foreignKey')
@@ -449,13 +489,17 @@ def createTable(databaseName : str, tableName : str, rows):
             refTable.text = rowReference[0]
             refAttr = ET.SubElement(reference,'refAttr')
             refAttr.text = rowReference[1]
+            index = ET.SubElement(indexfiles, 'IndexFile')
+            index.set('indexName',tableName + '.' + rowName + '.ind')
+            index.set('isUnique',str(rowIsUnique))
+            indexAttrs = ET.SubElement(index,'IndexAttributes')
+            indexAttr=  ET.SubElement(indexAttrs,'IAttribute')
+            indexAttr.text = rowName
 
         if rowIsIndex:
             index = ET.SubElement(indexfiles, 'IndexFile')
-            index.set('indexName',rowName + '.ind')
-            #index.set('keyLength') - keylength
+            index.set('indexName',tableName + '.' + rowName + '.ind')
             index.set('isUnique',str(rowIsUnique))
-            index.set('indexType', 'BTree')
             indexAttrs = ET.SubElement(index,'IndexAttributes')
             indexAttr=  ET.SubElement(indexAttrs,'IAttribute')
             indexAttr.text = rowName
@@ -482,7 +526,7 @@ if __name__ == '__main__':
         if msg == 'EXIT':
             print("Server is shutting down")
             clientSocket.close()
-            break
+            break 
 
         retval = doTask(msg)
         clientSocket.send(str(retval).encode())
