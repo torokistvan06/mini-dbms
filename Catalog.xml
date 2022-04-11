@@ -1,18 +1,5 @@
 <Databases>
 	<DataBase dataBaseName="University">
-		<Table tableName="specialization" rowLength="3">
-			<Structure>
-				<Attribute attributeName="SpecID" type="string" />
-				<Attribute attributeName="SpecName" type="string" />
-				<Attribute attributeName="Language" type="string" />
-			</Structure>
-			<primaryKey>
-				<pkAttribute>SpecID</pkAttribute>
-			</primaryKey>
-			<uniqueKeys />
-			<foreignKeys />
-			<IndexFiles />
-		</Table>
 		<Table tableName="disciplines" rowLength="3">
 			<Structure>
 				<Attribute attributeName="DiscID" type="string" />
@@ -31,6 +18,31 @@
 					</IndexAttributes>
 				</IndexFile>
 			</IndexFiles>
+			<ReferencedBy>
+				<Structure>
+					<Table>marks</Table>
+					<Attribute>DiscID</Attribute>
+				</Structure>
+			</ReferencedBy>
+		</Table>
+		<Table tableName="specialization" rowLength="3">
+			<Structure>
+				<Attribute attributeName="SpecID" type="string" />
+				<Attribute attributeName="SpecName" type="string" />
+				<Attribute attributeName="Language" type="string" />
+			</Structure>
+			<primaryKey>
+				<pkAttribute>SpecID</pkAttribute>
+			</primaryKey>
+			<uniqueKeys />
+			<foreignKeys />
+			<IndexFiles />
+			<ReferencedBy>
+				<Structure>
+					<Table>groups</Table>
+					<Attribute>SpecID</Attribute>
+				</Structure>
+			</ReferencedBy>
 		</Table>
 		<Table tableName="groups" rowLength="2">
 			<Structure>
@@ -57,6 +69,12 @@
 					</IndexAttributes>
 				</IndexFile>
 			</IndexFiles>
+			<ReferencedBy>
+				<RefStructure>
+					<Table>students</Table>
+					<Attribute>GroupID</Attribute>
+				</RefStructure>
+			</ReferencedBy>
 		</Table>
 		<Table tableName="students" rowLength="4">
 			<Structure>
@@ -68,9 +86,7 @@
 			<primaryKey>
 				<pkAttribute>StudID</pkAttribute>
 			</primaryKey>
-			<uniqueKeys>
-				<UniqueAttribute>Email</UniqueAttribute>
-			</uniqueKeys>
+			<uniqueKeys />
 			<foreignKeys>
 				<foreignKey>
 					<foreignAttribute>GroupID</foreignAttribute>
@@ -86,12 +102,13 @@
 						<IAttribute>GroupID</IAttribute>
 					</IndexAttributes>
 				</IndexFile>
-				<IndexFile indexName="students.Email.ind" isUnique="1">
-					<IndexAttributes>
-						<IAttribute>Email</IAttribute>
-					</IndexAttributes>
-				</IndexFile>
 			</IndexFiles>
+			<ReferencedBy>
+				<Structure>
+					<Table>marks</Table>
+					<Attribute>StudID</Attribute>
+				</Structure>
+			</ReferencedBy>
 		</Table>
 		<Table tableName="marks" rowLength="4">
 			<Structure>

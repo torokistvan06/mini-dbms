@@ -7,7 +7,7 @@ import re
 from regex import D
 
 global serverPort
-serverPort = 63007
+serverPort = 64073
 
 def doTask(msg: str):
     msg = msg.split(sep = '\n')
@@ -213,13 +213,40 @@ def deleteData(databaseName, tableName, conditions):
         
     separators.append('or')
 
+    referencedByTables = table.find('.//ReferencedBy//RefStructure//Table')
+    referencedByAttrs = table.find('.//ReferencedBy//RefStructure//Attribute')
+
+    if type(referencedByAttrs) == list:
+        for i in range(len(referencedByAttrs)):
+            referencedByAttrs[i] = referencedByAttrs[i].text
+            referencedByTables[i] = referencedByTables[i].text
+    else:
+        referencedByAttrs = referencedByAttrs.text
+        referencedByTables = referencedByTables.text
 
     for i,compare in enumerate(toCompare):
 
         if compare == pk:
             json2[ops[i]] = comparators[i]
             json['_id'] = json2
-            collection.delete_many(json)
+            if type(referencedByTables) == list:
+                for k in range(len(referencedByTables)):
+                    indColl = mongoclient.get_database(databaseName).get_collection(referencedByTables[k] + '.' + referencedByAttrs[k] + '.ind')
+                    try:
+                        val = indColl.find(json)[0]['Value']
+                    except:
+                        continue
+                    return -10
+                collection.delete_many(json)
+            else:
+                indColl = mongoclient.get_database(databaseName).get_collection(referencedByTables + '.' + referencedByAttrs + '.ind')
+                try:
+                    val = indColl.find(json)[0]['Value']
+                except:
+                    collection.delete_many(json)
+                    continue
+                return -10
+            
         else:
             deleteThis = []
             if types[compare] == 'string':
@@ -276,7 +303,7 @@ def deleteData(databaseName, tableName, conditions):
 
             if separators[i] == 'or' or i == len(toCompare):  
                 for dicti in deleteThis:
-                    json['_id'] = dicti['key']
+                    json['_id'] = dicti['key']                            
                     deleteIndexData(databaseName,dicti,indexes,indexfiles)
                     collection.delete_one(json)
                 deleteThis = []
@@ -312,6 +339,27 @@ def insertData(databaseName, tableName, data):
     except:
         pk = None
 
+    try:
+        uniqueKeys = table.findall('.//uniqueKeys//UniqueAttribute')
+        for i in range(len(uniqueKeys)):
+            uniqueKeys[i] = uniqueKeys[i].text
+    except:
+        uniqueKeys = None
+    
+    try:
+        refTables = table.findall('.//foreignKeys//foreignKey//references//refTable')
+        refAttrs = table.findall('.//foreignKeys//foreignKey//references//refAttr')
+        foreignKeys = table.findall('.//foreignKeys//foreignKey//foreignAttribute')
+        for i in range(len(refTables)):
+            refTables[i] = refTables[i].text
+            refAttrs[i] = refAttrs[i].text
+            foreignKeys[i] = foreignKeys[i].text
+    except:
+        refTables = None
+        refAttrs = None
+        foreignKeys = None
+
+
     msg = ''
     indexes = table.findall('IndexFiles//IndexFile//IndexAttributes//IAttribute')
     indexfiles = table.findall('IndexFiles//IndexFile')
@@ -344,14 +392,36 @@ def insertData(databaseName, tableName, data):
                 msg += data[i]
             else:
                 msg += '#' + data[i]
-            
-            for j in range(len(indexes)):
-                if column.attrib['attributeName'] == indexes[j].text:
-                    print(indexes[j].text,indexfiles[j].attrib['isUnique'])
-                    createIndex(databaseName,tableName,indexes[j].text,data[i],pk,indexfiles[j].attrib['isUnique'])
+
+            for uk in uniqueKeys:
+                if column.attrib['attributeName'] == uk:
+                    ukindex = mongoclient.get_database(databaseName).get_collection(tableName + '.' + uk + '.ind')
+                    try:
+                        val = ukindex.find({"_id" : data[i]})[0]['Value']
+                    except:
+                        break
+                    return -10 # Unique key already exists
+
+            for j in range(len(foreignKeys)):
+                if column.attrib['attributeName'] == foreignKeys[j]:
+                    refTable = mongoclient.get_database(databaseName).get_collection(refTables[j])
+                    try:
+                        val = refTable.find({"_id" : data[i]})[0]['Value']
+                    except:
+                        return -11 # Referenced row doesn't exist
+
         else:
             pk = data[i]
   
+        i += 1
+
+
+    i = 0 
+    for column in table.findall('.//Structure//Attribute'):
+        for j in range(len(indexes)):
+            if column.attrib['attributeName'] == indexes[j].text:
+                print(indexes[j].text,indexfiles[j].attrib['isUnique'])
+                createIndex(databaseName,tableName,indexes[j].text,data[i],pk,indexfiles[j].attrib['isUnique'])
         i += 1
 
     if pk != '':
@@ -363,8 +433,6 @@ def insertData(databaseName, tableName, data):
         data = {
             "Value":msg
         }
-
-
 
     database = mongoclient.get_database(databaseName)
     collection = database.get_collection(tableName)
@@ -517,6 +585,16 @@ def createTable(databaseName : str, tableName : str, rows):
             indexAttrs = ET.SubElement(index,'IndexAttributes')
             indexAttr=  ET.SubElement(indexAttrs,'IAttribute')
             indexAttr.text = rowName
+
+            for tb in database:
+                if tb.attrib['tableName'] == rowReference[0]:
+                    referencedBy = ET.SubElement(tb,"ReferencedBy")
+                    referencedStructure = ET.SubElement(referencedBy, "RefStructure")
+                    referencedByTable = ET.SubElement(referencedStructure, "Table")
+                    referencedAttr = ET.SubElement(referencedStructure, "Attribute")
+                    referencedByTable.text = tableName
+                    referencedAttr.text = rowName
+
 
         if rowIsIndex:
             index = ET.SubElement(indexfiles, 'IndexFile')

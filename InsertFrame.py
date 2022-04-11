@@ -53,6 +53,12 @@ class InsertFrame:
         elif msg == '-4':
             messagebox.showerror("Error", "Primary key already exists")
             #print('Reference on non-existing column in table')
+        elif msg == '-10':
+            messagebox.showerror("Error", "Unique attribute already exists")
+            #print('Reference on non-existing column in table')
+        elif msg == '-11':
+            messagebox.showerror("Error", "Referenced value doesn't exist")
+            #print('Reference on non-existing column in table')
             
         clientSocket.close()
 

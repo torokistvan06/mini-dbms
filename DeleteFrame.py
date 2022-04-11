@@ -55,6 +55,8 @@ class DeleteFrame:
             #print('Reference on non-existing column in table')
         elif msg == '-5':
             messagebox.showerror("Error", "Bad conditions")
+        elif msg == '-10':
+            messagebox.showerror("Error", "Row referenced by child table")
             
         clientSocket.close()
 
