@@ -4,8 +4,10 @@ import xml.etree.ElementTree as ET
 import pymongo
 import re
 
+from regex import D
+
 global serverPort
-serverPort = 63011
+serverPort = 63007
 
 def doTask(msg: str):
     msg = msg.split(sep = '\n')
@@ -63,7 +65,27 @@ def createIndex(database, table, indexName, index, key, isUnique):
         
         collection.update_one({"_id" : index}, { "$set" : {"Value" : val + '#' + key } })
         return 0
-        
+
+def deleteIndexData(databaseName, dict, indexes, indexFiles):
+    database = mongoclient.get_database(databaseName)
+    print(dict)
+    for j in range(len(indexes)):
+        print(indexFiles[j].attrib['indexName'])
+        isUnique = indexFiles[j].attrib['isUnique']
+        collection = database.get_collection(indexFiles[j].attrib['indexName'])
+        data = collection.find({"_id" : dict[indexes[j].text]})[0]['Value']
+        collection.delete_one({"_id" : dict[indexes[j].text]})
+        if isUnique == '0':
+            data = data.split(sep = '#')
+            newData = ''
+            for d in data:
+                if d != dict["key"]:
+                    if newData == '':
+                        newData = d
+                    else:
+                        newData += '#' + d
+            if newData != '':
+                collection.insert_one({"_id" : dict[indexes[j].text], "Value" : newData})
 
 def deleteData(databaseName, tableName, conditions):
 
@@ -145,10 +167,6 @@ def deleteData(databaseName, tableName, conditions):
             op = '$gte'
         ops.append(op)
 
-    print(toCompare)
-    print(comparators)
-    print(operators)
-
     database = None
     for db in root:
         if db.attrib['dataBaseName'] == databaseName:
@@ -171,6 +189,9 @@ def deleteData(databaseName, tableName, conditions):
 
     structure = structure[:-1]
     structure = structure.split(sep = '#')
+
+    indexes = table.findall('IndexFiles//IndexFile//IndexAttributes//IAttribute')
+    indexfiles = table.findall('IndexFiles//IndexFile')
 
     data = collection.find()
 
@@ -256,6 +277,7 @@ def deleteData(databaseName, tableName, conditions):
             if separators[i] == 'or' or i == len(toCompare):  
                 for dicti in deleteThis:
                     json['_id'] = dicti['key']
+                    deleteIndexData(databaseName,dicti,indexes,indexfiles)
                     collection.delete_one(json)
                 deleteThis = []
             elif separators[i] == 'and':
@@ -286,7 +308,7 @@ def insertData(databaseName, tableName, data):
     print(database.attrib['dataBaseName'],table.attrib['tableName'])
 
     try:
-        pk = table.findall('.//primaryKey//pkAttribute')
+        pk = table.findall('.//primaryKey//pkAttribute')[0].text
     except:
         pk = None
 
