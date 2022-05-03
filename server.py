@@ -4,11 +4,8 @@ import xml.etree.ElementTree as ET
 import pymongo
 import re
 
-from regex import D
-
 global serverPort
-serverPort = 64073
-
+serverPort = 50030
 def doTask(msg: str):
     msg = msg.split(sep = '\n')
     command = msg[0]
@@ -38,10 +35,152 @@ def doTask(msg: str):
         tableName = msg[2]
         conditions = msg[3]
         retval = deleteData(databaseName, tableName, conditions)
+    elif command == 'Select':
+        databaseName = msg[1]
+        dataName = msg[2].split(sep = ' ')[1:]
+        tableName = msg[3].split(sep = ' ' )[1]
+        
+        conditions = msg[4].split(sep = ' ' )[1:]
+        if len(conditions) == 1 and conditions[0] == '':
+            conditions = None
+        retval = selectData(databaseName, dataName, tableName, conditions)
     
     root = ET.parse('Catalog.xml').getroot()
     return retval
 
+def selectData(databaseName, dataName, tableName, conditions):
+
+    database = None
+    for db in root:
+        if db.attrib['dataBaseName'] == databaseName:
+            database = db
+            break
+        
+    if database == None:
+        return -2 # Trying to delete from non-existing database
+
+    table = None
+    for tb in database:
+        if tb.attrib['tableName'] == tableName:
+            table = tb
+
+    if table == None:
+        return -3 # Trying to delete from non-existing table
+
+    pk = table.findall('.//primaryKey//pkAttribute')[0].text # Save the primary key
+
+    structure = ''                                           # Save the structure of the table for later usage
+    types = {}
+    for column in table.findall('.//Structure//Attribute'):
+        if column.attrib['attributeName'] != pk:
+            structure += (column.attrib['attributeName'] + '#')
+            types[column.attrib['attributeName']] = column.attrib['type']
+
+    structure = structure[:-1]
+    structure = structure.split(sep = '#')
+
+    indexes = table.findall('IndexFiles//IndexFile//IndexAttributes//IAttribute') # Save the attributes we have indexes for and the files for them
+    indexfiles = table.findall('IndexFiles//IndexFile')
+
+    collection = mongoclient.get_database(databaseName).get_collection(tableName)
+
+    attribs = [] # Save the attributes of the table
+
+    for i in table.findall('.//Structure//Attribute'):
+        attribs.append(i.attrib['attributeName'])
+
+    separators = []
+    columns = []
+    operators = []
+    toCompare = []
+    comparators = []
+    ops = []
+
+    if(conditions != None):             # Working around the conditions to be able to use them, also validating them
+        separators = [elem for i, elem in enumerate(conditions)
+                        if i % 2 == 1]
+
+        conditions = [elem for i, elem in enumerate(conditions)
+                    if i % 2 == 0]
+
+        for i in separators:
+            if i != 'and':
+                return -4 # Wrong input, bad separators
+
+        for i in conditions:
+            if re.search('^[a-zA-Z0-9]+-?[0-9]*-?[0-9]*-?[0-9]*:?[0-9]*(!=|=|[<>]=?)[a-zA-Z0-9]+-?[0-9]*-?[0-9]*-?[0-9]*:?[0-9]*',i) == None:
+                return -5 # Wrong input, bad conditions
+
+        for condition in conditions:
+            operators.append(re.search(pattern = '(<=)|(>=)|<|>|=',string = condition).group(0))
+            columns.append(condition.split(sep = operators[-1]))
+    
+        for i,column in enumerate(columns):     # Splitting conditions into columns, operators and what we have to compare them to
+            newAttrib = None
+            for attribName in attribs:
+                if attribName == column[0]:
+                    toCompare.append(column[0])
+                    comparators.append(column[1])
+                    newAttrib = 1
+                elif attribName == column[1]:
+                    comparators.append(column[0])
+                    toCompare.append(column[1])
+                    newAttrib = 1
+            if newAttrib == None:
+                return -6
+        
+        # Converting operators so they can be used easily in mongodb.find
+        
+        for op in operators:
+            if op == '<':
+                op = '$lt'
+            elif op == '<=':
+                op = '$lte'
+            elif op == '=':
+                op = '$eq'
+            elif op == '>':
+                op = '$gt'
+            elif op == '>=':
+                op = '$gte'
+            ops.append(op)
+
+    if len(operators) == 0:
+        data = collection.find();
+    else:
+        pass
+        #Filter data
+    
+    if len(dataName) == 1 and dataName[0] == '*': # Select * case
+        msg = ''
+        msg += "%35s"%(pk)
+        for struct in structure:
+            msg += "%35s"%(struct)
+        print(msg)
+        print('\n')
+        for dat in data:
+            msg = ''
+            msg += "%35s"%(dat['_id'])
+            for i,struct in enumerate(structure):
+                msg += "%35s"%(dat['Value'].split(sep='#')[i])
+            print(msg)
+    else:                                         # Selecting given columns
+        msg = ''
+        if pk in dataName:
+            msg += "%35s"%(pk)
+        for struct in structure:
+            if struct in dataName:
+                msg += "%35s"%(struct)
+        print(msg)
+        print('\n')
+        for dat in data:
+            msg = ''
+            if pk in dataName:
+                msg += "%35s"%(dat['_id'])
+            for i,struct in enumerate(structure):
+              if struct in dataName:
+                msg += "%35s"%(dat['Value'].split(sep='#')[i])
+            print(msg)
+    
 def createIndex(database, table, indexName, index, key, isUnique):
     collection = mongoclient.get_database(database).get_collection(table + '.' +  indexName +'.ind')
     if isUnique == 1:
@@ -107,7 +246,6 @@ def deleteData(databaseName, tableName, conditions):
         return -3 # Trying to delete from non-existing table
 
 
-
     collection = mongoclient.get_database(databaseName).get_collection(tableName)
 
     separators = [elem for i, elem in enumerate(conditions.split(sep = " "))
@@ -134,8 +272,7 @@ def deleteData(databaseName, tableName, conditions):
     for condition in conditions:
         columns.append(re.split(pattern = '(<=)|(>=)|<|>|=',string = condition))
         operators.append(re.search(pattern = '(<=)|(>=)|<|>|=',string = condition).group(0))
-        
-    
+
     toCompare = []
     comparators = []
     
@@ -193,11 +330,6 @@ def deleteData(databaseName, tableName, conditions):
     indexes = table.findall('IndexFiles//IndexFile//IndexAttributes//IAttribute')
     indexfiles = table.findall('IndexFiles//IndexFile')
 
-    data = collection.find()
-
-    for i in data:
-        print(i)
-
     json = {}
     bigdict = []
     json2 = {}
@@ -213,14 +345,14 @@ def deleteData(databaseName, tableName, conditions):
         
     separators.append('or')
 
-    referencedByTables = table.find('.//ReferencedBy//RefStructure//Table')
-    referencedByAttrs = table.find('.//ReferencedBy//RefStructure//Attribute')
+    referencedByTables = table.find('.//ReferencedBy//Structure//Table')
+    referencedByAttrs = table.find('.//ReferencedBy//Structure//RefAttribute')
 
     if type(referencedByAttrs) == list:
         for i in range(len(referencedByAttrs)):
             referencedByAttrs[i] = referencedByAttrs[i].text
             referencedByTables[i] = referencedByTables[i].text
-    else:
+    elif referencedByAttrs != None:
         referencedByAttrs = referencedByAttrs.text
         referencedByTables = referencedByTables.text
 
@@ -238,7 +370,7 @@ def deleteData(databaseName, tableName, conditions):
                         continue
                     return -10
                 collection.delete_many(json)
-            else:
+            elif referencedByAttrs != None:
                 indColl = mongoclient.get_database(databaseName).get_collection(referencedByTables + '.' + referencedByAttrs + '.ind')
                 try:
                     val = indColl.find(json)[0]['Value']
@@ -246,6 +378,19 @@ def deleteData(databaseName, tableName, conditions):
                     collection.delete_many(json)
                     continue
                 return -10
+            else:
+                deleteThis = collection.find(json)
+                bigDelete = []
+                for delete in deleteThis:
+                    helper = {}
+                    for i,struct in enumerate(structure):
+                        helper[struct] = delete['Value'].split(sep='#')[i]
+                        helper['key'] = delete['_id']
+                    bigDelete.append(helper)
+                for dicti in bigDelete:                 
+                    deleteIndexData(databaseName,dicti,indexes,indexfiles)
+                collection.delete_one(json)
+
             
         else:
             deleteThis = []
@@ -322,7 +467,7 @@ def insertData(databaseName, tableName, data):
             break
         
     if database == None:
-        return -2 # Trying to delete from non-existing database
+        return -2
 
     table = None
     for tb in database:
@@ -330,7 +475,7 @@ def insertData(databaseName, tableName, data):
             table = tb
 
     if table == None:
-        return -3 # Trying to delete from non-existing table
+        return -3 
 
     print(database.attrib['dataBaseName'],table.attrib['tableName'])
 
@@ -400,6 +545,7 @@ def insertData(databaseName, tableName, data):
                         val = ukindex.find({"_id" : data[i]})[0]['Value']
                     except:
                         break
+                    print("UK exists");
                     return -10 # Unique key already exists
 
             for j in range(len(foreignKeys)):
@@ -408,7 +554,9 @@ def insertData(databaseName, tableName, data):
                     try:
                         val = refTable.find({"_id" : data[i]})[0]['Value']
                     except:
+                        print("No referenced row");
                         return -11 # Referenced row doesn't exist
+
 
         else:
             pk = data[i]
@@ -439,10 +587,11 @@ def insertData(databaseName, tableName, data):
     try:
         collection.insert_one(document=data)
     except:
+        print("Failed to insert")
         return -4 # Failed to insert because PK exists
 
 
-
+    print("Successful insert");
     return 0 # Successful insert
 
 def deleteDatabase(databaseName: str):
@@ -482,7 +631,6 @@ def deleteTable(databaseName: str, tableName: str):
 
     return -2 # Trying to delete non-existing table 
     
-
 def createDatabase(databaseName: str):
     database = None
     for db in root:
@@ -591,7 +739,7 @@ def createTable(databaseName : str, tableName : str, rows):
                     referencedBy = ET.SubElement(tb,"ReferencedBy")
                     referencedStructure = ET.SubElement(referencedBy, "RefStructure")
                     referencedByTable = ET.SubElement(referencedStructure, "Table")
-                    referencedAttr = ET.SubElement(referencedStructure, "Attribute")
+                    referencedAttr = ET.SubElement(referencedStructure, "RefAttribute")
                     referencedByTable.text = tableName
                     referencedAttr.text = rowName
 

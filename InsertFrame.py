@@ -32,7 +32,7 @@ class InsertFrame:
         data = self.textBox3.get()
 
         message = "Insert\n" + dataBaseName + '\n' + tableName + '\n' + data
-
+        print(message);
         serverName = 'localhost'
         clientSocket = socket(AF_INET,SOCK_STREAM)
         clientSocket.connect((serverName,serverPort))

@@ -21,7 +21,7 @@
 			<ReferencedBy>
 				<Structure>
 					<Table>marks</Table>
-					<Attribute>DiscID</Attribute>
+					<RefAttribute>DiscID</RefAttribute>
 				</Structure>
 			</ReferencedBy>
 		</Table>
@@ -40,7 +40,7 @@
 			<ReferencedBy>
 				<Structure>
 					<Table>groups</Table>
-					<Attribute>SpecID</Attribute>
+					<RefAttribute>SpecID</RefAttribute>
 				</Structure>
 			</ReferencedBy>
 		</Table>
@@ -70,10 +70,10 @@
 				</IndexFile>
 			</IndexFiles>
 			<ReferencedBy>
-				<RefStructure>
+				<Structure>
 					<Table>students</Table>
-					<Attribute>GroupID</Attribute>
-				</RefStructure>
+					<RefAttribute>GroupID</RefAttribute>
+				</Structure>
 			</ReferencedBy>
 		</Table>
 		<Table tableName="students" rowLength="4">
@@ -106,7 +106,7 @@
 			<ReferencedBy>
 				<Structure>
 					<Table>marks</Table>
-					<Attribute>StudID</Attribute>
+					<RefAttribute>StudID</RefAttribute>
 				</Structure>
 			</ReferencedBy>
 		</Table>
@@ -150,5 +150,45 @@
 				</IndexFile>
 			</IndexFiles>
 		</Table>
+		<Table tableName="SubGroups" rowLength="2">
+			<Structure>
+				<Attribute attributeName="SubGroupID" type="int" />
+				<Attribute attributeName="Name" type="string" />
+			</Structure>
+			<primaryKey>
+				<pkAttribute>SubGroupID</pkAttribute>
+			</primaryKey>
+			<uniqueKeys>
+				<UniqueAttribute>Name</UniqueAttribute>
+			</uniqueKeys>
+			<foreignKeys />
+			<IndexFiles>
+				<IndexFile indexName="SubGroups.Name.ind" isUnique="1">
+					<IndexAttributes>
+						<IAttribute>Name</IAttribute>
+					</IndexAttributes>
+				</IndexFile>
+			</IndexFiles>
+		</Table>
+		<Table tableName="Class" rowLength="2">
+			<Structure>
+				<Attribute attributeName="ClassID" type="int" />
+				<Attribute attributeName="ClassName" type="string" />
+			</Structure>
+			<primaryKey>
+				<pkAttribute>ClassID</pkAttribute>
+			</primaryKey>
+			<uniqueKeys />
+			<foreignKeys />
+			<IndexFiles>
+				<IndexFile indexName="Class.ClassName.ind" isUnique="0">
+					<IndexAttributes>
+						<IAttribute>ClassName</IAttribute>
+					</IndexAttributes>
+				</IndexFile>
+			</IndexFiles>
+		</Table>
 	</DataBase>
+	<DataBase dataBaseName="Cities" />
+	<DataBase dataBaseName="asdfg" />
 </Databases>

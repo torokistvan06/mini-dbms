@@ -6,6 +6,7 @@ from DDFrame import DDFrame as DDF
 from DTFrame import DTFrame as DTF
 from InsertFrame import InsertFrame as IF
 from DeleteFrame import DeleteFrame as DF
+from SelectFrame import SelectFrame as SF
 
 class MainFrame:
     def __init__(self):
@@ -18,6 +19,7 @@ class MainFrame:
         self.DTButton = self.createButton(self.window, 'Drop Table', 620, 350, self.deleteTable)
         self.InsertButton = self.createButton(self.window, 'Insert', 350, 500, self.insertData)
         self.DeleteButton = self.createButton(self.window, 'Delete', 620, 500, self.deleteData)
+        self.SelectButton = self.createButton(self.window, "Select", 485, 650, self.selectData)
         self.window.mainloop()
 
     def createButton(self, window: Tk, t: str, xx: int, yy :int, func):
@@ -53,6 +55,11 @@ class MainFrame:
         DeleteFrame = DF(self)
         self.close();
         DeleteFrame.start()
+
+    def selectData(self):
+        SelectFrame = SF(self)
+        self.close();
+        SelectFrame.start();
 
     def show(self):
         self.window.deiconify()
