@@ -1,10 +1,10 @@
-import pymongo
+from pytest import fixture
+from sympy import Function
 
-mongoclient = pymongo.MongoClient("mongodb+srv://istu:Ceruza12.@cluster0.n8gxh.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
 
-collection = mongoclient.get_database('University').get_collection('groups')
+xx = [1, 2, 3]
+fx  = Function('fx')
+fxx = fx(xx)
 
-try:
-    val = collection.find({"_id" : 593})[0]['Value']
-except:
-    print('No such id')
+print(xx)
+print(fxx)

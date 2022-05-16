@@ -47,10 +47,10 @@ class SelectFrame:
         dataName = self.textBox3.get()
         tableName = self.textBox4.get()
         conditions = self.textBox5.get();
+        joins = self.textBox6.get()
 
 
-
-        message = "Select\n" + dataBaseName + '\nSELECT ' + dataName + '\nFROM ' + tableName + '\nWHERE ' + conditions;
+        message = "Select\n" + dataBaseName + '\nSELECT ' + dataName + '\nFROM ' + tableName + '\nWHERE ' + conditions + '\nJOIN ' + joins;
         print(message);
 
         serverName = 'localhost'

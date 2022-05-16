@@ -7,18 +7,19 @@ import random
 import names
 
 
-groups = [531,532,533,631,632,633];
-emails = ["@gmail.com", "@yahoo.com", "@hotmail.com"]
+salaries = [5000, 5250, 5500, 5740, 6000, 6500, 7000, 2500, 10000]
+nations = ['Romania', 'Hungary', 'Ukraine', 'USA', 'Russia', 'France', 'UK', 'Germany']
+groups = [1, 2, 3, 4, 5, 6, 7, 8, 9 , 10]
+dates = ['2012-01-02','2012-01-12','2012-02-24','2012-03-05','2012-04-20']
+emails = ['@gmail.com', '@yahoo.com', '@hotmail.com', '@freemail.com']
 
-for i in range(5,100000,1):
-  dataBaseName = "University"
-  tableName = "students"
+for i in range(0,200,1):
+  dataBaseName = "Shop"
+  tableName = "employees"
 
-  rand = random.randint(0,5)
-  rand2 = random.randint(0,2);
-  name = names.get_full_name();
-  email = name.split(" ")[0].lower() + name.split(" ")[1].lower() + emails[rand2];
-  data = "(%d,%d,%s,%s)"%(i,groups[rand],name,email);
+  date = dates[random.randint(0,4)]
+  name = names.get_first_name()
+  data = "(%d,%d,%s,%s)"%(i,i,name,date)
   print(data)
 
   message = "Insert\n" + dataBaseName + '\n' + tableName + '\n' + data

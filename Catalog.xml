@@ -189,6 +189,56 @@
 			</IndexFiles>
 		</Table>
 	</DataBase>
-	<DataBase dataBaseName="Cities" />
-	<DataBase dataBaseName="asdfg" />
+	<DataBase dataBaseName="Shop">
+		<Table tableName="customers" rowLength="7">
+			<Structure>
+				<Attribute attributeName="ID" type="int" />
+				<Attribute attributeName="Name" type="string" />
+				<Attribute attributeName="Salary" type="int" />
+				<Attribute attributeName="Nation" type="string" />
+				<Attribute attributeName="Group" type="int" />
+				<Attribute attributeName="Email" type="string" />
+				<Attribute attributeName="RegisterDate" type="date" />
+			</Structure>
+			<primaryKey>
+				<pkAttribute>ID</pkAttribute>
+			</primaryKey>
+			<uniqueKeys />
+			<foreignKeys />
+			<IndexFiles>
+				<IndexFile indexName="customers.Nation.ind" isUnique="0">
+					<IndexAttributes>
+						<IAttribute>Nation</IAttribute>
+					</IndexAttributes>
+				</IndexFile>
+				<IndexFile indexName="customers.Group.ind" isUnique="0">
+					<IndexAttributes>
+						<IAttribute>Group</IAttribute>
+					</IndexAttributes>
+				</IndexFile>
+			</IndexFiles>
+		</Table>
+		<Table tableName="employees" rowLength="4">
+			<Structure>
+				<Attribute attributeName="ID" type="int" />
+				<Attribute attributeName="CustomerID" type="int" />
+				<Attribute attributeName="Nickname" type="string" />
+				<Attribute attributeName="Birthdate" type="date" />
+			</Structure>
+			<primaryKey>
+				<pkAttribute>ID</pkAttribute>
+			</primaryKey>
+			<uniqueKeys>
+				<UniqueAttribute>CustomerID</UniqueAttribute>
+			</uniqueKeys>
+			<foreignKeys />
+			<IndexFiles>
+				<IndexFile indexName="Employee.CustomerID.ind" isUnique="1">
+					<IndexAttributes>
+						<IAttribute>CustomerID</IAttribute>
+					</IndexAttributes>
+				</IndexFile>
+			</IndexFiles>
+		</Table>
+	</DataBase>
 </Databases>

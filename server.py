@@ -5,7 +5,8 @@ import pymongo
 import re
 
 global serverPort
-serverPort = 50030
+serverPort = 5025
+
 def doTask(msg: str):
     msg = msg.split(sep = '\n')
     command = msg[0]
@@ -38,17 +39,19 @@ def doTask(msg: str):
     elif command == 'Select':
         databaseName = msg[1]
         dataName = msg[2].split(sep = ' ')[1:]
-        tableName = msg[3].split(sep = ' ' )[1]
+        tableName = msg[3].split(sep = ' ' )[1:]
         
-        conditions = msg[4].split(sep = ' ' )[1:]
-        if len(conditions) == 1 and conditions[0] == '':
+        conditions = msg[4].replace("WHERE ","");
+        if conditions == '':
             conditions = None
-        retval = selectData(databaseName, dataName, tableName, conditions)
+
+        joinTables = msg[5].replace("JOIN ","")
+        retval = selectData(databaseName, dataName, tableName, conditions, joinTables)
     
     root = ET.parse('Catalog.xml').getroot()
     return retval
 
-def selectData(databaseName, dataName, tableName, conditions):
+def selectData(databaseName, dataName, tableName, conditions, joinTables):
 
     database = None
     for db in root:
@@ -59,6 +62,9 @@ def selectData(databaseName, dataName, tableName, conditions):
     if database == None:
         return -2 # Trying to delete from non-existing database
 
+    tableNick = tableName[1]
+    tableName = tableName[0]
+
     table = None
     for tb in database:
         if tb.attrib['tableName'] == tableName:
@@ -67,48 +73,249 @@ def selectData(databaseName, dataName, tableName, conditions):
     if table == None:
         return -3 # Trying to delete from non-existing table
 
-    pk = table.findall('.//primaryKey//pkAttribute')[0].text # Save the primary key
 
+    allTableNames = []
+    allTableNames.append(tableName)
+    allTableNicks = []
+    allTableNicks.append(tableNick)
+    joinTableNames = []
+    joinTableNicks = []
+    joinTableConditions = []
+    joinTables = joinTables.split(sep = " and ")
+    for jt in joinTables:
+        joinT = jt.split(sep = ' ')
+        allTableNames.append(joinT[0])
+        joinTableNames.append(joinT[0])
+        allTableNicks.append(joinT[1])
+        joinTableNicks.append(joinT[1])
+        joinTableConditions.append(joinT[3])
+
+    allPks = []
+    allCollections = []
+    allTables = []
+    allStructures = []
+    allTypes = []
+    allIndexes = []
+    allIndexFiles = []
+    allAttribs = []
+
+    collection = mongoclient.get_database(databaseName).get_collection(tableName)
+    allCollections.append(collection)
+    pk = tableNick + '.' + table.findall('.//primaryKey//pkAttribute')[0].text # Save the primary key
+    allPks.append(pk)
+    allTables.append(table)
     structure = ''                                           # Save the structure of the table for later usage
     types = {}
     for column in table.findall('.//Structure//Attribute'):
-        if column.attrib['attributeName'] != pk:
-            structure += (column.attrib['attributeName'] + '#')
-            types[column.attrib['attributeName']] = column.attrib['type']
+        types[column.attrib['attributeName']] = column.attrib['type']
+        if (tableNick + '.' + column.attrib["attributeName"]) != pk:
+          structure += (column.attrib['attributeName'] + '#')
 
     structure = structure[:-1]
     structure = structure.split(sep = '#')
 
-    indexes = table.findall('IndexFiles//IndexFile//IndexAttributes//IAttribute') # Save the attributes we have indexes for and the files for them
-    indexfiles = table.findall('IndexFiles//IndexFile')
+    allStructures.append(structure)
+    allTypes.append(types)
 
-    collection = mongoclient.get_database(databaseName).get_collection(tableName)
+    indexestmp = table.findall('IndexFiles//IndexFile//IndexAttributes//IAttribute') # Save the attributes we have indexes for and the files for them
+    indexfilestmp = table.findall('IndexFiles//IndexFile')
+
+    indexes = []
+    indexfiles = []
+
+    for i in range(len(indexestmp)):
+        indexes.append(indexestmp[i].text)
+        indexfiles.append(indexfilestmp[i].attrib["indexName"])
+    
+    for ind in indexes:
+        allIndexes.append(ind)
+    for indf in indexfiles:
+        allIndexFiles.append(indf)
 
     attribs = [] # Save the attributes of the table
 
     for i in table.findall('.//Structure//Attribute'):
         attribs.append(i.attrib['attributeName'])
 
-    separators = []
+    allAttribs.append(attribs)
+
+    for i, joinTableName in enumerate(joinTableNames):
+
+        # Validate table names and save the reference to their xml
+        joinTable = None
+        for tb in database:
+            if tb.attrib['tableName'] == joinTableName:
+                joinTable = tb
+        
+        if joinTable == None:
+            return -3
+        else:
+            allTables.append(joinTable)
+
+        # Save the primary keys of tables
+
+        allPks.append(joinTableNicks[i] + '.' + table.findall('.//primaryKey//pkAttribute')[0].text)
+
+        # Get table collections
+        allCollections.append(mongoclient.get_database(databaseName).get_collection(joinTableName))
+
+        # Save the structure of joined tables for later usage
+        joinStructure = ''                                         
+        joinType = {}
+        for column in joinTable.findall('.//Structure//Attribute'):
+            joinType[column.attrib['attributeName']] = column.attrib['type']
+            if (joinTableNicks[i] + '.' + column.attrib["attributeName"]) != allPks[i + 1]:
+                joinStructure += (column.attrib['attributeName'] + '#')
+
+        joinStructure = joinStructure[:-1]
+        joinStructure = joinStructure.split(sep = '#')
+
+        allStructures.append(joinStructure)
+        allTypes.append(joinType)
+
+        # Save the indexes of joined tables
+
+        indexestmp = joinTable.findall('IndexFiles//IndexFile//IndexAttributes//IAttribute') # Save the attributes we have indexes for and the files for them
+        indexfilestmp = joinTable.findall('IndexFiles//IndexFile')
+
+        joinIndex = []
+        joinIndexFile = []
+
+        for i in range(len(indexestmp)):
+            joinIndex.append(indexestmp[i].text)
+            joinIndexFile.append(indexfilestmp[i].attrib["indexName"])
+
+        for jind in joinIndex:
+            allIndexes.append(jind)
+        for jindf in joinIndexFile:
+            allIndexFiles.append(jindf)
+
+        # Save the attributes of joined tables for later usage
+
+        joinAttrib = [] 
+
+        for i in joinTable.findall('.//Structure//Attribute'):
+            joinAttrib.append(i.attrib['attributeName'])
+        
+        allAttribs.append(joinAttrib)
+    
+    datas = []
+    for i, table in enumerate(allTables):
+        data = allCollections[i].find()
+        newData = []
+        for dat in data:
+            dicti = {}
+            dicti[allPks[i]] = dat["_id"]
+            val = dat['Value'].split(sep = "#")
+            for j, struct in enumerate(allStructures[i]):
+                dicti[(allTableNicks[i] + '.' + struct)] = val[j]
+            newData.append(dicti)
+
+        datas.append(newData)
+
+    data = allCollections[0]
+    newData = None
+    joined = []
+
+    for cond in joinTableConditions:
+        tableOneIndex = None
+        tableTwoIndex = None
+        tableOneComparator = cond.split(sep = '=')[0]
+        tableTwoComparator = cond.split(sep = '=')[1]
+        for i, nick in enumerate(allTableNicks):
+            if nick == tableOneComparator.split(sep='.')[0]:
+                tableOneIndex = i
+            if nick == tableTwoComparator.split(sep='.')[0]:
+                tableTwoIndex = i
+        
+        if tableOneIndex == None or tableTwoIndex == None:
+            return -4
+        
+        if tableOneComparator in joined:
+            datas[tableOneIndex] = newData
+        
+        if tableTwoComparator in joined:
+            data[tableTwoComparator] = newData
+
+        joined.append(tableOneComparator)
+        joined.append(tableTwoComparator)
+
+        newData = []
+
+        tc1 = tableOneComparator
+        tc2 = tableTwoComparator
+        if not tc1 in allPks and not tc1.split('.')[1] in allIndexes and not tc2 in allPks and not tc2.split('.')[1] in allIndexes:
+            for dataOne in datas[tableOneIndex]:
+                for dataTwo in datas[tableTwoIndex]: 
+                    if str(dataOne[tableOneComparator]) == str(dataTwo[tableTwoComparator]):
+                        dicti = {}
+                        for key in dataOne.keys():
+                            dicti[key] = dataOne[key]
+                        for key in dataTwo.keys():
+                            dicti[key] = dataTwo[key]
+                        newData.append(dicti)
+        else:
+            dataOne = None
+            if tc1 in allPks:
+                dataOne = allCollections[tableOneIndex].find()
+            elif tc1.split('.')[1] in allIndexes:
+                dataOne = mongoclient.get_database(database).get_collection(allIndexFiles[tableOneIndex]).find()
+            
+            localColl = None
+            if tc2 in allPks:
+                localColl = allCollections[tableTwoIndex]
+            elif tc2.split('.')[1] in allIndexes:
+                localColl = mongoclient.get_database(database).get_collection(allIndexFiles[tableTwoIndex])
+                
+
+            newData = []
+            for dat in dataOne:
+                json = {}
+                json['_id'] = dat['_id']
+                localData = localColl.find(json)
+                for data in localData:
+                    dicti = {}
+                    for key in dat.keys():
+                        dicti[(allTableNicks[tableOneIndex] + '.' + key)] = dat[key]
+                    for key in data.keys():
+                        dicti[(allTableNicks[tableTwoIndex] + '.' + key)] = data[key]
+                    newData.append(dicti)
+
+                
+
+    # Where 
+
+    data = newData
+
     columns = []
     operators = []
     toCompare = []
     comparators = []
     ops = []
+    antiops = []
+    attribs = []
+    types = {}
+    indexes = []
+    indexfiles = []
+
+    for i, attr in enumerate(allAttribs):
+        for a in attr:
+            attribs.append((allTableNicks[i] + '.' + a))
+            types[allTableNicks[i] + '.' + a] = allTypes[i][a]
+
+    for ind in allIndexFiles:
+        indexes.append(ind)
+    
+    for indf in allIndexFiles:
+        indexfiles.append(indf)
+
 
     if(conditions != None):             # Working around the conditions to be able to use them, also validating them
-        separators = [elem for i, elem in enumerate(conditions)
-                        if i % 2 == 1]
 
-        conditions = [elem for i, elem in enumerate(conditions)
-                    if i % 2 == 0]
-
-        for i in separators:
-            if i != 'and':
-                return -4 # Wrong input, bad separators
+        conditions = conditions.split(sep = " and ")
 
         for i in conditions:
-            if re.search('^[a-zA-Z0-9]+-?[0-9]*-?[0-9]*-?[0-9]*:?[0-9]*(!=|=|[<>]=?)[a-zA-Z0-9]+-?[0-9]*-?[0-9]*-?[0-9]*:?[0-9]*',i) == None:
+            if re.search('^[a-z].[a-zA-Z0-9]+-?[0-9]*-?[0-9]*-?[0-9]*:?[0-9]*(!=|=|[<>]=?)[a-zA-Z0-9]+-?[0-9]*-?[0-9]*-?[0-9]*:?[0-9]*',i) == None:
                 return -5 # Wrong input, bad conditions
 
         for condition in conditions:
@@ -131,56 +338,167 @@ def selectData(databaseName, dataName, tableName, conditions):
         
         # Converting operators so they can be used easily in mongodb.find
         
+        antiop = None
         for op in operators:
             if op == '<':
                 op = '$lt'
+                antiop = '$gte'
             elif op == '<=':
                 op = '$lte'
+                antiop = '$gt'
             elif op == '=':
                 op = '$eq'
+                antiop = '$ne'
             elif op == '>':
                 op = '$gt'
+                antiop = '$lte'
             elif op == '>=':
                 op = '$gte'
+                antiop = '$lt'
             ops.append(op)
+            antiops.append(antiop)
 
-    if len(operators) == 0:
-        data = collection.find();
-    else:
-        pass
-        #Filter data
-    
-    if len(dataName) == 1 and dataName[0] == '*': # Select * case
-        msg = ''
-        msg += "%35s"%(pk)
-        for struct in structure:
-            msg += "%35s"%(struct)
-        print(msg)
-        print('\n')
-        for dat in data:
+    if len(operators) != 0:
+        for i, tc in enumerate(toCompare):      # Filter by primary key
+            for j, pk in enumerate(allPks):
+                if tc == pk:
+                    json = {}
+                    json2 = {}
+                    localComparator = comparators[i]
+                    localToCompareType = types[tc]
+                    if localToCompareType == 'int':
+                        localComparator = int(localComparator)
+                    if localToCompareType == 'float':  
+                        localComparator = float(localComparator)
+                    if localToCompareType == 'bit':
+                        localComparator = bool(localComparator)
+                    json2[antiops[i]] = localComparator
+                    json["_id"] = json2
+                    ids = []
+                    newData = allCollections[j].find(json)
+                    for dat in newData:
+                        for d in data:
+                            if d[toCompare[i]] == dat['_id']:
+                                try:
+                                    data.remove(d)
+                                    continue
+                                except:
+                                    pass
+        
+        for k, indexes in enumerate(allIndexes):
+            for j, index in enumerate(indexes):                   # Filter by indexes 
+                for i, tc in enumerate(toCompare):
+                    if tc.split('.')[1] == index:
+                        json = {}
+                        json2 = {}
+                        localComparator = comparators[i]
+                        localToCompareType = types[tc]
+                        if localToCompareType == 'int':
+                            localComparator = int(localComparator)
+                        if localToCompareType == 'float':  
+                            localComparator = float(localComparator)
+                        if localToCompareType == 'bit':
+                            localComparator = bool(localComparator)
+
+                        localCollection = mongoclient.get_database(databaseName).get_collection(allIndexFiles[k][j])
+                        json2[ops[i]] = localComparator
+                        json["_id"] = json2
+                        localData = localCollection.find(json);
+                        ids = []
+                        for dat in localData:
+                            localIds = dat["Value"].split(sep = "#")
+                            pkType = types[allPks[k]]
+                            for id in localIds:
+                                if pkType == 'int':
+                                    ids.append(int(id))
+                                if pkType == 'float':  
+                                    ids.append(float(id))
+                                if pkType == 'bit':
+                                    ids.append(bool(id))
+
+                        for dat in data:
+                            if not dat[allPks[i]] in ids:
+                                data.remove(dat)
+                        
+        for i, tc in enumerate(toCompare):
+            if not tc in allPks and not tc in indexes:
+                removeThis = []
+
+                if types[tc] == 'string':
+                    for dat in data:
+                        if dat[toCompare[i]] != comparators[i] and operators[i] == '=':
+                            removeThis.append(dat)
+                elif types[tc] != 'date' and types[tc] != 'datetime':
+                  for dat in data:
+                    if operators[i] == '=':
+                        evalthis = dat[tc] + operators[i] + operators[i] + comparators[i]
+                    else:
+                        evalthis = dat[tc] + operators[i] + comparators[i]
+                    if eval(evalthis) == False:
+                        removeThis.append(dat)
+                else:
+                    for dat in data:
+                        date1 = None
+                        date2 = None
+                        diff = None
+                        if types[tc] == 'date':
+                                date1 = datetime.datetime.strptime(dat[toCompare[i]],'%Y-%m-%d')
+                                date2 = datetime.datetime.strptime(comparators[i],'%Y-%m-%d')
+                                diff = (date1 - date2).days
+                        else:
+                            date1 = datetime.datetime.strptime(dat[toCompare[i]],'%Y-%m-%d-%H:%M')
+                            date2 = datetime.datetime.strptime(comparators[i],'%Y-%m-%d-%H:%M')
+                            diff = (date1 - date2).days
+
+                        if diff != 0 and operators[i] == '=':
+                            removeThis.append(dat)
+                        elif diff == 0 and operators[i] == '!=':
+                            removeThis.append(dat)
+                        elif diff > 0 and operators[i] == '<=':
+                            removeThis.append(dat)
+                        elif diff >= 0 and operators[i] == '<':
+                            removeThis.append(dat)
+                        elif diff < 0 and operators[i] == '>=':
+                            removeThis.append(dat)
+                        elif diff <= 0 and operators[i] == '>':
+                            removeThis.append(dat)
+                
+                for rm in removeThis:
+                    data.remove(rm)
+
+
+
+    if len(data) != 0:
+        if len(dataName) == 1 and dataName[0] == '*': # Select * case
+            
             msg = ''
-            msg += "%35s"%(dat['_id'])
-            for i,struct in enumerate(structure):
-                msg += "%35s"%(dat['Value'].split(sep='#')[i])
+            for key in data[0].keys():
+                msg += "%35s"%(key)
             print(msg)
-    else:                                         # Selecting given columns
-        msg = ''
-        if pk in dataName:
-            msg += "%35s"%(pk)
-        for struct in structure:
-            if struct in dataName:
-                msg += "%35s"%(struct)
-        print(msg)
-        print('\n')
-        for dat in data:
+            print('\n')
+
+            for dat in data:
+                msg = ''
+                for key in dat.keys():
+                    msg += "%35s"%(dat[key])
+                print(msg)
+            print('\n')
+        else:                                         # Selecting given columns
             msg = ''
-            if pk in dataName:
-                msg += "%35s"%(dat['_id'])
-            for i,struct in enumerate(structure):
-              if struct in dataName:
-                msg += "%35s"%(dat['Value'].split(sep='#')[i])
+            for key in data[0].keys():
+                if key in dataName:
+                    msg += "%35s"%(key)
             print(msg)
-    
+            print('\n')
+
+            for dat in data:
+                msg = ''
+                for key in dat.keys():
+                    if key in dataName:
+                        msg += "%35s"%(dat[key])
+                print(msg)
+            print('\n')
+
 def createIndex(database, table, indexName, index, key, isUnique):
     collection = mongoclient.get_database(database).get_collection(table + '.' +  indexName +'.ind')
     if isUnique == 1:
@@ -477,12 +795,18 @@ def insertData(databaseName, tableName, data):
     if table == None:
         return -3 
 
-    print(database.attrib['dataBaseName'],table.attrib['tableName'])
+    structure = ''                                           # Save the structure of the table for later usage
+    types = {}
+    for column in table.findall('.//Structure//Attribute'):
+        structure += (column.attrib['attributeName'] + '#')
+        types[column.attrib['attributeName']] = column.attrib['type']
 
     try:
         pk = table.findall('.//primaryKey//pkAttribute')[0].text
     except:
         pk = None
+
+    pkType = types[pk]
 
     try:
         uniqueKeys = table.findall('.//uniqueKeys//UniqueAttribute')
@@ -509,6 +833,7 @@ def insertData(databaseName, tableName, data):
     indexes = table.findall('IndexFiles//IndexFile//IndexAttributes//IAttribute')
     indexfiles = table.findall('IndexFiles//IndexFile')
     i = 0
+    stringPK = None
     for column in table.findall('.//Structure//Attribute'):
         # Typeerror
 
@@ -559,7 +884,13 @@ def insertData(databaseName, tableName, data):
 
 
         else:
-            pk = data[i]
+            stringPK = data[i]
+            if pkType == 'int':
+                pk = int(data[i])
+            if pkType == 'float':
+                pk = float(data[i])
+            if pkType == 'bit':
+                pk = bool(data[i])
   
         i += 1
 
@@ -568,8 +899,18 @@ def insertData(databaseName, tableName, data):
     for column in table.findall('.//Structure//Attribute'):
         for j in range(len(indexes)):
             if column.attrib['attributeName'] == indexes[j].text:
+                indexType = types[indexes[j].text]
+                indexVal = None
+                if indexType == 'int':
+                    indexVal = int(data[i])
+                elif indexType == 'float':
+                    indexVal = float(data[i])
+                elif indexType == 'bit':
+                    indexVal = bool(data[i])
+                else:
+                    indexVal = data[i]
                 print(indexes[j].text,indexfiles[j].attrib['isUnique'])
-                createIndex(databaseName,tableName,indexes[j].text,data[i],pk,indexfiles[j].attrib['isUnique'])
+                createIndex(databaseName,tableName,indexes[j].text,indexVal,stringPK,indexfiles[j].attrib['isUnique'])
         i += 1
 
     if pk != '':
