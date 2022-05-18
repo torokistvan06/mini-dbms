@@ -1,11 +1,12 @@
 import datetime
+from ntpath import join
 from socket import *
 import xml.etree.ElementTree as ET
 import pymongo
 import re
 
 global serverPort
-serverPort = 5006
+serverPort = 5001
 
 def doTask(msg: str):
     msg = msg.split(sep = '\n')
@@ -98,6 +99,7 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables):
     allTypes = []
     allIndexes = []
     allIndexFiles = []
+    allIndexFileIsUnique = []
     allAttribs = []
 
     collection = mongoclient.get_database(databaseName).get_collection(tableName)
@@ -123,13 +125,16 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables):
 
     indexes = []
     indexfiles = []
+    indexfilesisunique = []
 
     for i in range(len(indexestmp)):
         indexes.append(indexestmp[i].text)
         indexfiles.append(indexfilestmp[i].attrib["indexName"])
+        indexfilesisunique.append(indexfilestmp[i].attrib["isUnique"])
     
     allIndexes.append(indexes)
     allIndexFiles.append(indexfiles)
+    allIndexFileIsUnique.append(indexfilesisunique)
 
     attribs = [] # Save the attributes of the table
 
@@ -137,6 +142,19 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables):
         attribs.append(i.attrib['attributeName'])
 
     allAttribs.append(attribs)
+
+    if conditions == None and len(dataName) == 1 and dataName[0] != '*' and dataName[0].split('.')[1] in indexes:
+        indexfile = None
+        for i, ind in enumerate(indexes):
+            if ind == dataName[0].split('.')[1]:
+                indexfile = indexfiles[i]
+        localCollection = mongoclient.get_database(databaseName).get_collection(indexfile)
+        data = localCollection.find();
+        print("%35s\n"%(dataName[0]))
+        for dat in data:
+            print("%35s"%(dat["_id"]))
+        print()
+        return 0;
 
     for i, joinTableName in enumerate(joinTableNames):
 
@@ -176,17 +194,20 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables):
 
         indexestmp = joinTable.findall('IndexFiles//IndexFile//IndexAttributes//IAttribute') # Save the attributes we have indexes for and the files for them
         indexfilestmp = joinTable.findall('IndexFiles//IndexFile')
+        
 
         joinIndex = []
         joinIndexFile = []
+        joinIndexFileIsUnique = []
 
         for i in range(len(indexestmp)):
             joinIndex.append(indexestmp[i].text)
             joinIndexFile.append(indexfilestmp[i].attrib["indexName"])
+            joinIndexFileIsUnique.append(indexfilestmp[i].attrib["isUnique"])
 
         allIndexes.append(joinIndex)
         allIndexFiles.append(joinIndexFile)
-
+        allIndexFileIsUnique.append(joinIndexFileIsUnique)
         # Save the attributes of joined tables for later usage
 
         joinAttrib = [] 
@@ -272,22 +293,7 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables):
             ops.append(op)
             antiops.append(antiop)
 
-    filteredData = [[] for _ in range(len(allTables))]
-    if len(operators) != 0:
-        for i, tc in enumerate(toCompare):
-            tableIndex = None
-            for j, tNick in enumerate(allTableNicks):
-                if tc.split('.')[0] == tNick:
-                    tableIndex = j
-                    break;
-            data = select(databaseName, datas[tableIndex], tc, allPks[tableIndex], allTypes[tableIndex], comparators[i], ops[i] , antiops[i], operators[i], allCollections[tableIndex], allIndexes[tableIndex], allIndexFiles[tableIndex])
-            filteredData[tableIndex] = data
-
-    for i, fd in enumerate(filteredData):
-        if len(fd) == 0:
-            filteredData[i] = datas[i]
-
-    data = filteredData[0]
+    data = datas[0]
     joined = []
     joined.append(0)
     for cond in joinTableConditions:
@@ -321,10 +327,11 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables):
 
 
         newData = []
-
-        if joinComparator != allPks[joinIndex] and not joinComparator in allIndexes[joinIndex]:
+        joinComparatorAdd = joinComparator.split('.')[1]
+    
+        if not joinComparatorAdd in allIndexes[joinIndex]:
             for dat in data:
-                for dataTwo in filteredData[joinIndex]: 
+                for dataTwo in datas[joinIndex]: 
                     if str(dat[dataComparator]) == str(dataTwo[joinComparator]):
                         dicti = {}
                         for key in dat.keys():
@@ -336,24 +343,77 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables):
             localCollection = None
             
             if joinComparator != allPks[joinIndex]:
-                for i in range(len(indexes)):
-                    if indexes[i] == joinComparator:
-                        localCollection = mongoclient.get_database.get_collection(allIndexFiles[i])
+                for i, index in enumerate(allIndexes[joinIndex]):
+                    if index == joinComparator.split('.')[1]:
+                        localCollection = mongoclient.get_database(databaseName).get_collection(allIndexFiles[joinIndex][i])
             else:
                 localCollection = allCollections[joinIndex]
 
-            joinIDs = []
+            
+            ids = []
+            pkType = None
             for dat in data:
-                cursor = localCollection.find({ '_id': dat[dataComparator]})
-                for newDat in cursor:
-                    newDat = newDat.split('#')
-                    for nD in newDat:
-                        joinIDs.append(nD)
+                localComparator = dat[dataComparator]
+                localCompType = allTypes[dataIndex][dataComparator]
+                if localCompType == 'int':
+                    localComparator = int(localComparator)
+                if localCompType == 'float':
+                    localComparator = float(localComparator)
+                if localCompType == 'bit':
+                    localComparator = bool(localComparator)
+                if joinComparator == allPks[joinIndex]:
+                    dataTwos = localCollection.find( {'_id': localComparator} )
+                else:
+                    dataTwos = localCollection.find( {'_id': localComparator} )
 
+                for dataTwo in dataTwos:
+                    oldIds = dataTwo['Value'].split('#')
+                    pkType = allTypes[joinIndex][joinComparator]
+                    for id in oldIds:
+                        if pkType == 'int':
+                            ids.append(int(id))
+                        if pkType == 'float':  
+                            ids.append(float(id))
+                        if pkType == 'bit':
+                            ids.append(bool(id))
+                
+            tempData = []
+            for dat in datas[joinIndex]:
+                compThis = dat[joinComparator]
+                if pkType == 'int':
+                    compThis = int(compThis)
+                if pkType == 'float':  
+                    compThis = float(compThis)
+                if pkType == 'bit':
+                    compThis = bool(compThis)
+                if compThis in ids:
+                    tempData.append(dat)
+                    if len(tempData) == len(ids):
+                        break;
+            
+            datas[joinIndex] = tempData
 
+            for dat in data:
+                for dataTwo in datas[joinIndex]: 
+                    if str(dat[dataComparator]) == str(dataTwo[joinComparator]):
+                        dicti = {}
+                        for key in dat.keys():
+                            dicti[key] = dat[key]
+                        for key in dataTwo.keys():
+                            dicti[key] = dataTwo[key]
+                        newData.append(dicti)
 
         data = newData
         joined.append(joinIndex)
+
+    if len(operators) != 0:
+        for i, tc in enumerate(toCompare):
+            tableIndex = None
+            for j, tNick in enumerate(allTableNicks):
+                if tc.split('.')[0] == tNick:
+                    tableIndex = j
+                    break;
+            data = select(databaseName, data, tc, allPks[tableIndex], allTypes[tableIndex], comparators[i], ops[i] , antiops[i], operators[i], allCollections[tableIndex], allIndexes[tableIndex], allIndexFiles[tableIndex])
 
     if len(data) != 0:
         if len(dataName) == 1 and dataName[0] == '*': # Select * case
@@ -401,18 +461,29 @@ def select(databaseName, data, tc, pk, types, comparator, op, antiop, operator, 
             localComparator = float(localComparator)
         if localToCompareType == 'bit':
             localComparator = bool(localComparator)
-        json2[antiop] = localComparator
+        json2[op] = localComparator
         json["_id"] = json2
         ids = []
         newData = collection.find(json)
         for dat in newData:
-            for d in data:
-                if d[tc] == dat['_id']:
-                    try:
-                        data.remove(d)
-                        continue
-                    except:
-                        pass
+            localID = dat["_id"]
+            if localToCompareType == 'int':
+                localID = int(localID)
+            if localToCompareType == 'float':  
+                localID = float(localID)
+            if localToCompareType == 'bit':
+                localID = bool(localID) 
+            ids.append(localID)
+        
+        newData = []
+        for dat in data:
+            if dat[tc] in ids:
+                newData.append(dat)
+                if len(newData) == len(ids):
+                    break
+        
+        data = newData
+
     
     for j, index in enumerate(indexes):      # Filter by indexes
         if tc.split('.')[1] == index:
@@ -447,6 +518,8 @@ def select(databaseName, data, tc, pk, types, comparator, op, antiop, operator, 
             for dat in data:
                 if dat[pk] in ids:
                     newData.append(dat)
+                    if len(newData) == len(ids):
+                        break
                 
             data = newData
 

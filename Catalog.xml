@@ -233,7 +233,7 @@
 			</uniqueKeys>
 			<foreignKeys />
 			<IndexFiles>
-				<IndexFile indexName="Employee.CustomerID.ind" isUnique="1">
+				<IndexFile indexName="employees.CustomerID.ind" isUnique="1">
 					<IndexAttributes>
 						<IAttribute>CustomerID</IAttribute>
 					</IndexAttributes>
