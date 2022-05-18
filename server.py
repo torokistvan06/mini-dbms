@@ -425,7 +425,7 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables):
         pass
     
     outFile = open('clientOutput.txt', 'w')
-
+    
     if len(data) != 0:
         if len(dataName) == 1 and dataName[0] == '*': # Select * case
             
