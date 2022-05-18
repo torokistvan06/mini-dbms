@@ -239,6 +239,38 @@
 					</IndexAttributes>
 				</IndexFile>
 			</IndexFiles>
+			<ReferencedBy>
+				<RefStructure>
+					<Table>managers</Table>
+					<RefAttribute>EmployeeID</RefAttribute>
+				</RefStructure>
+			</ReferencedBy>
+		</Table>
+		<Table tableName="managers" rowLength="2">
+			<Structure>
+				<Attribute attributeName="ID" type="int" />
+				<Attribute attributeName="EmployeeID" type="int" />
+			</Structure>
+			<primaryKey>
+				<pkAttribute>ID</pkAttribute>
+			</primaryKey>
+			<uniqueKeys />
+			<foreignKeys>
+				<foreignKey>
+					<foreignAttribute>EmployeeID</foreignAttribute>
+					<references>
+						<refTable>employees</refTable>
+						<refAttr>ID</refAttr>
+					</references>
+				</foreignKey>
+			</foreignKeys>
+			<IndexFiles>
+				<IndexFile indexName="managers.EmployeeID.ind" isUnique="0">
+					<IndexAttributes>
+						<IAttribute>EmployeeID</IAttribute>
+					</IndexAttributes>
+				</IndexFile>
+			</IndexFiles>
 		</Table>
 	</DataBase>
 </Databases>
