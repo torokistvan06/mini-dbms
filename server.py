@@ -6,7 +6,7 @@ import pymongo
 import re
 
 global serverPort
-serverPort = 5003
+serverPort = 5004
 
 def doTask(msg: str):
     msg = msg.split(sep = '\n')
@@ -423,39 +423,49 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables):
 
     if len(operators) != 0:
         pass
+    
+    outFile = open('clientOutput.txt', 'w')
 
     if len(data) != 0:
         if len(dataName) == 1 and dataName[0] == '*': # Select * case
             
             msg = ''
+            lines = ''
             for key in data[0].keys():
                 msg += "%35s"%(key)
             print(msg)
             print('\n')
-
+            lines += (msg + '\n\n')
+            
             for dat in data:
                 msg = ''
                 for key in dat.keys():
                     msg += "%35s"%(dat[key])
                 print(msg)
+                lines += (msg + '\n')
             print('\n')
+            lines += '\n'
+            outFile.writelines(lines)
         else:                                         # Selecting given columns
             msg = ''
+            lines = ''
             for key in data[0].keys():
                 if key in dataName:
                     msg += "%35s"%(key)
             print(msg)
             print('\n')
-
+            lines += (msg + '\n\n')
             for dat in data:
                 msg = ''
                 for key in dat.keys():
                     if key in dataName:
                         msg += "%35s"%(dat[key])
                 print(msg)
+                lines += (msg + '\n')
             print('\n')
-
-
+            lines += '\n'
+            outFile.writelines(lines)
+    outFile.close()
 
 def select(databaseName, data, tc, pk, types, comparator, op, antiop, operator, collection, indexes, indexFiles):
 # Filter by primary key
@@ -1193,7 +1203,7 @@ if __name__ == '__main__':
 
     print("Server is starting")
     global tree, root, mongoclient
-    mongoclient = pymongo.MongoClient("mongodb+srv://istu:Ceruza12.@cluster0.n8gxh.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
+    mongoclient = pymongo.MongoClient("mongodb+srv://robi:ceruza12@cluster0.iwtua.mongodb.net/?retryWrites=true&w=majority")
     tree = ET.parse('Catalog.xml')
     root = tree.getroot()
     #print(root)

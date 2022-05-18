@@ -59,6 +59,7 @@ class SelectFrame:
         clientSocket.send(message.encode())
 
         msg = clientSocket.recv(256).decode()
+
         if msg == '0':
             print('Data inserted successfully')
         elif msg == '-1':
@@ -79,7 +80,9 @@ class SelectFrame:
             messagebox.showerror("Error", "Row referenced by child table")
             
         clientSocket.close()
-
+        file = open('clientOutput.txt', 'r')
+        print(file.readlines())
+        
         self.destroy()
         self.mainFrame.show()
 
