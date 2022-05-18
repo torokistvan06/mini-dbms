@@ -6,7 +6,7 @@ import pymongo
 import re
 
 global serverPort
-serverPort = 5001
+serverPort = 5003
 
 def doTask(msg: str):
     msg = msg.split(sep = '\n')
@@ -293,7 +293,22 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables):
             ops.append(op)
             antiops.append(antiop)
 
-    data = datas[0]
+    filteredData = [[] for _ in range(len(allTables))]
+
+    for i, tc in enumerate(toCompare):
+        tableIndex = None
+        for j, tNick in enumerate(allTableNicks):
+            if tc.split('.')[0] == tNick:
+                tableIndex = j
+                break;
+        data = select(databaseName, datas[i], tc, allPks[tableIndex], allTypes[tableIndex], comparators[i], ops[i] , antiops[i], operators[i], allCollections[tableIndex], allIndexes[tableIndex], allIndexFiles[tableIndex])
+        filteredData[tableIndex] = data
+
+    for i in range(len(filteredData)):
+        if len(filteredData[i]) == 0:
+            filteredData[i] = datas[i]
+
+    data = filteredData[0]
     joined = []
     joined.append(0)
     for cond in joinTableConditions:
@@ -331,7 +346,7 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables):
     
         if not joinComparatorAdd in allIndexes[joinIndex]:
             for dat in data:
-                for dataTwo in datas[joinIndex]: 
+                for dataTwo in filteredData[joinIndex]: 
                     if str(dat[dataComparator]) == str(dataTwo[joinComparator]):
                         dicti = {}
                         for key in dat.keys():
@@ -378,7 +393,7 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables):
                             ids.append(bool(id))
                 
             tempData = []
-            for dat in datas[joinIndex]:
+            for dat in filteredData[joinIndex]:
                 compThis = dat[joinComparator]
                 if pkType == 'int':
                     compThis = int(compThis)
@@ -407,13 +422,7 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables):
         joined.append(joinIndex)
 
     if len(operators) != 0:
-        for i, tc in enumerate(toCompare):
-            tableIndex = None
-            for j, tNick in enumerate(allTableNicks):
-                if tc.split('.')[0] == tNick:
-                    tableIndex = j
-                    break;
-            data = select(databaseName, data, tc, allPks[tableIndex], allTypes[tableIndex], comparators[i], ops[i] , antiops[i], operators[i], allCollections[tableIndex], allIndexes[tableIndex], allIndexFiles[tableIndex])
+        pass
 
     if len(data) != 0:
         if len(dataName) == 1 and dataName[0] == '*': # Select * case
@@ -516,7 +525,7 @@ def select(databaseName, data, tc, pk, types, comparator, op, antiop, operator, 
 
             newData = []
             for dat in data:
-                if dat[pk] in ids:
+                if dat[pk.split('.')[1]] in ids:
                     newData.append(dat)
                     if len(newData) == len(ids):
                         break
