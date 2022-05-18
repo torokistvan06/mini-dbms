@@ -80,9 +80,9 @@ class SelectFrame:
             messagebox.showerror("Error", "Row referenced by child table")
             
         clientSocket.close()
-        file = open('clientOutput.txt', 'r')
-        print(file.readlines())
-        
+        outFile = open('clientOutput.txt', 'r')
+        print(outFile.readlines())
+
         self.destroy()
         self.mainFrame.show()
 
