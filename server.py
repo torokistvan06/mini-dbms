@@ -6,7 +6,7 @@ import pymongo
 import re
 
 global serverPort
-serverPort = 5004
+serverPort = 50012
 
 def doTask(msg: str):
     msg = msg.split(sep = '\n')
@@ -294,6 +294,8 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables):
             antiops.append(antiop)
 
     filteredData = [[] for _ in range(len(allTables))]
+    for i in range(len(filteredData)):
+        filteredData[i] = datas[i]
 
     for i, tc in enumerate(toCompare):
         tableIndex = None
@@ -301,12 +303,9 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables):
             if tc.split('.')[0] == tNick:
                 tableIndex = j
                 break;
-        data = select(databaseName, datas[i], tc, allPks[tableIndex], allTypes[tableIndex], comparators[i], ops[i] , antiops[i], operators[i], allCollections[tableIndex], allIndexes[tableIndex], allIndexFiles[tableIndex])
+        data = select(databaseName, filteredData[tableIndex], tc, allPks[tableIndex], allTypes[tableIndex], comparators[i], ops[i] , antiops[i], operators[i], allCollections[tableIndex], allIndexes[tableIndex], allIndexFiles[tableIndex])
         filteredData[tableIndex] = data
 
-    for i in range(len(filteredData)):
-        if len(filteredData[i]) == 0:
-            filteredData[i] = datas[i]
 
     data = filteredData[0]
     joined = []
@@ -394,7 +393,7 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables):
                 
             tempData = []
             for dat in filteredData[joinIndex]:
-                compThis = dat[joinComparator]
+                compThis = dat[allPks[joinIndex]]
                 if pkType == 'int':
                     compThis = int(compThis)
                 if pkType == 'float':  
@@ -406,10 +405,10 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables):
                     if len(tempData) == len(ids):
                         break;
             
-            datas[joinIndex] = tempData
+            filteredData[joinIndex] = tempData
 
             for dat in data:
-                for dataTwo in datas[joinIndex]: 
+                for dataTwo in filteredData[joinIndex]: 
                     if str(dat[dataComparator]) == str(dataTwo[joinComparator]):
                         dicti = {}
                         for key in dat.keys():
@@ -535,7 +534,7 @@ def select(databaseName, data, tc, pk, types, comparator, op, antiop, operator, 
 
             newData = []
             for dat in data:
-                if dat[pk.split('.')[1]] in ids:
+                if dat[pk] in ids:
                     newData.append(dat)
                     if len(newData) == len(ids):
                         break
@@ -1203,8 +1202,8 @@ if __name__ == '__main__':
 
     print("Server is starting")
     global tree, root, mongoclient
-    mongoclient = pymongo.MongoClient("mongodb+srv://robi:ceruza12@cluster0.iwtua.mongodb.net/?retryWrites=true&w=majority")
     tree = ET.parse('Catalog.xml')
+    mongoclient = pymongo.MongoClient("mongodb+srv://istu:Ceruza12.@cluster0.n8gxh.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")    
     root = tree.getroot()
     #print(root)
  

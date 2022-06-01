@@ -1,0 +1,55 @@
+SELECT c.ID e.ID e.CustomerID c.Nation c.Salary c.Group
+FROM customers c
+WHERE c.ID<2000 and c.ID>1000 and e.CustomerID<10000 and c.Group<5 and c.Salary<=7500 and c.Nation=Romania
+JOIN employees e on c.ID=e.CustomerID
+
+                               c.ID                           c.Salary                           c.Nation                            c.Group                               e.ID                       e.CustomerID
+
+                               1001                               5500                            Romania                                  4                               3267                               1001
+                               1011                               5500                            Romania                                  0                               8705                               1011
+                               1014                               2500                            Romania                                  0                              87420                               1014
+                               1046                               7000                            Romania                                  0                              13339                               1046
+                               1074                               5000                            Romania                                  0                              74854                               1074
+                               1078                               2500                            Romania                                  4                              10016                               1078
+                               1098                               5500                            Romania                                  3                              27638                               1098
+                               1099                               5500                            Romania                                  2                               7607                               1099
+                               1127                               5000                            Romania                                  1                              32240                               1127
+                               1149                               5740                            Romania                                  4                              60097                               1149
+                               1180                               5500                            Romania                                  1                              72593                               1180
+                               1204                               5500                            Romania                                  4                               3956                               1204
+                               1222                               7000                            Romania                                  1                              41984                               1222
+                               1298                               7000                            Romania                                  2                              15786                               1298
+                               1308                               6000                            Romania                                  3                              76338                               1308
+                               1355                               7000                            Romania                                  3                              10128                               1355
+                               1382                               7000                            Romania                                  3                              68293                               1382
+                               1387                               7000                            Romania                                  2                              17046                               1387
+                               1407                               5740                            Romania                                  1                               7026                               1407
+                               1440                               5250                            Romania                                  4                               9280                               1440
+                               1448                               6500                            Romania                                  1                              55166                               1448
+                               1450                               5000                            Romania                                  0                              58867                               1450
+                               1496                               6500                            Romania                                  1                              97086                               1496
+                               1549                               5250                            Romania                                  1                              80427                               1549
+                               1558                               5740                            Romania                                  1                               6727                               1558
+                               1605                               5250                            Romania                                  0                              14344                               1605
+                               1614                               5500                            Romania                                  1                              74653                               1614
+                               1619                               6500                            Romania                                  0                              78200                               1619
+                               1638                               6000                            Romania                                  2                              47269                               1638
+                               1646                               5500                            Romania                                  0                               7527                               1646
+                               1672                               2500                            Romania                                  1                              16522                               1672
+                               1694                               5000                            Romania                                  1                              65929                               1694
+                               1707                               5740                            Romania                                  3                              98430                               1707
+                               1722                               2500                            Romania                                  3                              32810                               1722
+                               1811                               5740                            Romania                                  4                              96552                               1811
+                               1842                               6000                            Romania                                  4                              52287                               1842
+                               1845                               5500                            Romania                                  2                              78025                               1845
+                               1869                               6500                            Romania                                  0                              47182                               1869
+                               1872                               7000                            Romania                                  1                              26782                               1872
+                               1893                               7000                            Romania                                  1                               7428                               1893
+                               1910                               2500                            Romania                                  4                              17757                               1910
+                               1911                               5740                            Romania                                  3                              62210                               1911
+                               1937                               6500                            Romania                                  1                              82042                               1937
+                               1950                               7000                            Romania                                  1                              40769                               1950
+                               1953                               5740                            Romania                                  0                              81315                               1953
+                               1965                               2500                            Romania                                  0                              35625                               1965
+                               1976                               6000                            Romania                                  1                              63162                               1976
+

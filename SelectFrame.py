@@ -48,9 +48,10 @@ class SelectFrame:
         tableName = self.textBox4.get()
         conditions = self.textBox5.get();
         joins = self.textBox6.get()
+        groups = self.textBox7.get()
 
 
-        message = "Select\n" + dataBaseName + '\nSELECT ' + dataName + '\nFROM ' + tableName + '\nWHERE ' + conditions + '\nJOIN ' + joins;
+        message = "Select\n" + dataBaseName + '\nSELECT ' + dataName + '\nFROM ' + tableName + '\nWHERE ' + conditions + '\nJOIN ' + joins + '\nGROUP BY' + groups
         print(message);
 
         serverName = 'localhost'
@@ -81,7 +82,7 @@ class SelectFrame:
             
         clientSocket.close()
         outFile = open('clientOutput.txt', 'r')
-        print(outFile.readlines())
+        print(outFile.read())
 
         self.destroy()
         self.mainFrame.show()
