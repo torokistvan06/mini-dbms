@@ -1,3 +1,4 @@
+from copy import deepcopy
 import datetime
 from ntpath import join
 from socket import *
@@ -6,7 +7,66 @@ import pymongo
 import re
 
 global serverPort
-serverPort = 50012
+serverPort = 50002
+
+def merge(arr, l, m, r, key):
+    n1 = m - l + 1
+    n2 = r - m
+ 
+    # create temp arrays
+    L = [0] * (n1)
+    R = [0] * (n2)
+ 
+    # Copy data to temp arrays L[] and R[]
+    for i in range(0, n1):
+        L[i] = arr[l + i]
+ 
+    for j in range(0, n2):
+        R[j] = arr[m + 1 + j]
+ 
+    # Merge the temp arrays back into arr[l..r]
+    i = 0     # Initial index of first subarray
+    j = 0     # Initial index of second subarray
+    k = l     # Initial index of merged subarray
+ 
+    while i < n1 and j < n2:
+        if L[i][key] <= R[j][key]:
+            arr[k] = L[i]
+            i += 1
+        else:
+            arr[k] = R[j]
+            j += 1
+        k += 1
+ 
+    # Copy the remaining elements of L[], if there
+    # are any
+    while i < n1:
+        arr[k] = L[i]
+        i += 1
+        k += 1
+ 
+    # Copy the remaining elements of R[], if there
+    # are any
+    while j < n2:
+        arr[k] = R[j]
+        j += 1
+        k += 1
+ 
+# l is for left index and r is right index of the
+# sub-array of arr to be sorted
+ 
+ 
+def mergeSort(arr, l, r, key):
+    if l < r:
+ 
+        # Same as (l+r)//2, but avoids overflow for
+        # large l and h
+        m = l+(r-l)//2
+ 
+        # Sort first and second halves
+        mergeSort(arr, l, m, key)
+        mergeSort(arr, m+1, r, key)
+        merge(arr, l, m, r, key)
 
 def doTask(msg: str):
     msg = msg.split(sep = '\n')
@@ -47,12 +107,209 @@ def doTask(msg: str):
             conditions = None
 
         joinTables = msg[5].replace("JOIN ","")
-        retval = selectData(databaseName, dataName, tableName, conditions, joinTables)
+        groups = msg[6].replace("GROUP BY ","")
+        if groups == '':
+            groups = None
+        retval = selectData(databaseName, dataName, tableName, conditions, joinTables, groups)
     
     root = ET.parse('Catalog.xml').getroot()
     return retval
 
-def selectData(databaseName, dataName, tableName, conditions, joinTables):
+def descartes(database, groups, data, dictList, dicti, allTableNicks, allIndexes, allIndexFiles):
+    usedgroups = []
+    for g in groups:
+        nick = g.split('.')[0]
+        tableIndex = None
+        for i, c in enumerate(allTableNicks):
+            if c == nick:
+                tableIndex = i
+                break
+
+        indexIndex = None
+        for i, index in enumerate(allIndexes[tableIndex]):
+            if index == g.split('.')[1]:
+                indexIndex = i
+                break
+
+        if indexIndex == None:
+            for dat in data:
+                if not dat[g] in usedgroups:
+                    usedgroups.append(dat[g])
+                    dicti[g] = dat[g]
+                    descartes(database, groups[1:],data, dictList, dicti, allTableNicks, allIndexes, allIndexFiles)
+                    dictList.append(deepcopy(dicti))
+        else:
+            localCollection = mongoclient.get_database(database).get_collection(allIndexFiles[tableIndex][indexIndex])
+            localData = localCollection.find()
+            for dat in localData:
+                dicti[g] = str(dat['_id'])
+                descartes(database, groups[1:],data, dictList, dicti, allTableNicks, allIndexes, allIndexFiles)
+                dictList.append(deepcopy(dicti))
+
+def functions(database, dataName, data, allTypes, allTableNicks, groups, outFile, allIndexes, allIndexFiles):
+
+    functionsUsed = False
+    for name in dataName:
+        try:
+            column = name.split('(')[1]
+            functionsUsed = True
+            break
+        except:
+            pass
+
+    if not functionsUsed:
+        msg = ''
+        lines = ''
+        for key in dataName:
+            msg += "%35s"%(key)
+        print(msg)
+        print('\n')
+        lines += (msg + '\n\n')
+        for dat in data:
+            msg = ''
+            for key in dat.keys():
+                if key in dataName:
+                    msg += "%35s"%(dat[key])
+            print(msg)
+            lines += (msg + '\n')
+        print('\n')
+        lines += '\n'
+        outFile.writelines(lines)
+
+    elif groups == None:
+
+        dicti = {}
+        for name in dataName:
+            list = []
+            func = name.split('(')[0]
+            column = name.split('(')[1][:-1]
+            if column != '*':
+                tableIndex = None
+                for i, c in enumerate(allTableNicks):
+                    if c == column.split('.')[0]:
+                        tableIndex = i
+                        break
+                columnType = allTypes[tableIndex][column]
+                for dat in data:
+                    if columnType == 'int':
+                        list.append(int(dat[column]))
+                    if columnType == 'float':
+                        list.append(float(dat[column]))
+            else:
+                list = data
+
+            if func == 'AVG':
+                if len(list) != 0:
+                    dicti[('AVG(%s)'%(column))] = sum(list) / len(list)
+                else:
+                    dicti[('AVG(%s)'%(column))] = 0
+            elif func == 'SUM':
+                dicti[('SUM(%s)'%(column))] = sum(list)
+            elif func == 'MAX':
+                dicti[('MAX(%s)'%(column))] = max(list)
+            elif func == 'MIN':
+                dicti[('MIN(%s)'%(column))] = min(list)
+            elif func == 'COUNT':
+                dicti[('COUNT(%s)'%(column))] = len(list)
+            
+        
+        msg = ''
+        lines = ''
+        for key in dicti.keys():
+            msg += "%35s"%(key)
+        print(msg)
+        print()
+        lines += (msg + '\n\n')
+        msg = ''
+        for key in dicti.keys():
+            msg += "%35s"%(dicti[key])
+        print(msg)
+        lines += msg
+        outFile.writelines(lines)
+
+    else:
+        
+        newData = []
+        
+        dictList = []
+        dicti = {}
+        descartes(database, groups, data, dictList, dicti, allTableNicks, allIndexes, allIndexFiles)
+
+        newDictList = []
+        for d in dictList:
+            if not d in newDictList:
+                newDictList.append(d)
+        
+        dictList = newDictList
+        datas = [[] for _ in range(len(dictList))]
+
+        for i, dict in enumerate(dictList):
+            print(dict)
+            for dat in data:
+                matching = True
+                for key in dict.keys():
+                    if dict[key] != dat[key]:
+                        matching = False
+                        break
+                if matching:
+                    datas[i].append(dat)
+            
+            for dat in datas[i]:
+                data.remove(dat)
+
+            for name in dataName:
+                if name not in groups:
+                    list = []
+                    func = name.split('(')[0]
+                    column = name.split('(')[1][:-1]
+                    if column != '*':
+                        tableIndex = None
+                        for j, c in enumerate(allTableNicks):
+                            if c == column.split('.')[0]:
+                                tableIndex = j
+                                break
+                        columnType = allTypes[tableIndex][column]
+                        for dat in datas[i]:
+                            if columnType == 'int':
+                                list.append(int(dat[column]))
+                            if columnType == 'float':
+                                list.append(float(dat[column]))
+                    else:
+                        list = data
+                
+                    if func == 'AVG':
+                        if len(list) != 0:
+                            dict[('AVG(%s)'%(column))] = sum(list) / len(list)
+                        else:
+                            dict[('AVG(%s)'%(column))] = 0
+                    elif func == 'SUM':
+                        dict[('SUM(%s)'%(column))] = sum(list)
+                    elif func == 'MAX':
+                        dict[('MAX(%s)'%(column))] = max(list)
+                    elif func == 'MIN':
+                        dict[('MIN(%s)'%(column))] = min(list)
+                    elif func == 'COUNT':
+                        dict[('COUNT(%s)'%(column))] = len(list)
+        
+        msg = ''
+        lines = ''
+        for key in dataName:
+            msg += "%35s"%(key)
+        print(msg)
+        print('\n')
+        lines += (msg + '\n\n')
+        for dat in dictList:
+            msg = ''
+            for key in dat.keys():
+                msg += "%35s"%(dat[key])
+            print(msg)
+            lines += (msg + '\n')
+        print('\n')
+        lines += '\n'
+        outFile.writelines(lines)
+
+
+def selectData(databaseName, dataName, tableName, conditions, joinTables, groups):
 
     database = None
     for db in root:
@@ -143,7 +400,7 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables):
 
     allAttribs.append(attribs)
 
-    if conditions == None and len(dataName) == 1 and dataName[0] != '*' and dataName[0].split('.')[1] in indexes:
+    if conditions == None and len(dataName) == 1 and dataName[0] != '*' and dataName[0] != 'COUNT(*)' and dataName[0].split('.')[1] in indexes:
         indexfile = None
         for i, ind in enumerate(indexes):
             if ind == dataName[0].split('.')[1]:
@@ -420,9 +677,13 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables):
         data = newData
         joined.append(joinIndex)
 
-    if len(operators) != 0:
-        pass
-    
+    length = len(data) - 1
+    if groups != None:
+        groups = groups.split(' ')
+        for group in groups:
+            mergeSort(data, 0, length, group)
+
+
     outFile = open('clientOutput.txt', 'w')
     
     if len(data) != 0:
@@ -445,25 +706,9 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables):
             print('\n')
             lines += '\n'
             outFile.writelines(lines)
-        else:                                         # Selecting given columns
-            msg = ''
-            lines = ''
-            for key in data[0].keys():
-                if key in dataName:
-                    msg += "%35s"%(key)
-            print(msg)
-            print('\n')
-            lines += (msg + '\n\n')
-            for dat in data:
-                msg = ''
-                for key in dat.keys():
-                    if key in dataName:
-                        msg += "%35s"%(dat[key])
-                print(msg)
-                lines += (msg + '\n')
-            print('\n')
-            lines += '\n'
-            outFile.writelines(lines)
+        else: # Selecting given columns
+            functions(databaseName, dataName, data, allTypes, allTableNicks, groups, outFile, allIndexes, allIndexFiles)
+
     outFile.close()
 
 def select(databaseName, data, tc, pk, types, comparator, op, antiop, operator, collection, indexes, indexFiles):

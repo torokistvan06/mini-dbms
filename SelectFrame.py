@@ -51,7 +51,7 @@ class SelectFrame:
         groups = self.textBox7.get()
 
 
-        message = "Select\n" + dataBaseName + '\nSELECT ' + dataName + '\nFROM ' + tableName + '\nWHERE ' + conditions + '\nJOIN ' + joins + '\nGROUP BY' + groups
+        message = "Select\n" + dataBaseName + '\nSELECT ' + dataName + '\nFROM ' + tableName + '\nWHERE ' + conditions + '\nJOIN ' + joins + '\nGROUP BY ' + groups
         print(message);
 
         serverName = 'localhost'
