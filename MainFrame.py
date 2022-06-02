@@ -1,4 +1,3 @@
-from curses import window
 from tkinter import *
 from CDFrame import CDFrame as CDF
 from CTFrame import CTFrame as CTF
@@ -53,13 +52,13 @@ class MainFrame:
 
     def deleteData(self):
         DeleteFrame = DF(self)
-        self.close();
+        self.close()
         DeleteFrame.start()
 
     def selectData(self):
         SelectFrame = SF(self)
-        self.close();
-        SelectFrame.start();
+        self.close()
+        SelectFrame.start()
 
     def show(self):
         self.window.deiconify()

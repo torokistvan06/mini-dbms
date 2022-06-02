@@ -77,6 +77,12 @@ class SelectFrame:
             #print('Reference on non-existing column in table')
         elif msg == '-5':
             messagebox.showerror("Error", "Bad conditions")
+        elif msg == '-7':
+            messagebox.showerror("Error", "Column doesn't exists")
+        elif msg == -8:
+            messagebox.showerror("Error", "Trying to group by with non selected column")
+        elif msg == -9:
+            messagebox.showerror("Error", "Cannot group by on SELECT *")
         elif msg == '-10':
             messagebox.showerror("Error", "Row referenced by child table")
             

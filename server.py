@@ -7,24 +7,21 @@ import pymongo
 import re
 
 global serverPort
-serverPort = 50002
+serverPort = 50005
 
 def merge(arr, l, m, r, key):
     n1 = m - l + 1
     n2 = r - m
- 
-    # create temp arrays
+
     L = [0] * (n1)
     R = [0] * (n2)
- 
-    # Copy data to temp arrays L[] and R[]
+
     for i in range(0, n1):
         L[i] = arr[l + i]
  
     for j in range(0, n2):
         R[j] = arr[m + 1 + j]
- 
-    # Merge the temp arrays back into arr[l..r]
+
     i = 0     # Initial index of first subarray
     j = 0     # Initial index of second subarray
     k = l     # Initial index of merged subarray
@@ -39,28 +36,19 @@ def merge(arr, l, m, r, key):
         k += 1
  
     # Copy the remaining elements of L[], if there
-    # are any
     while i < n1:
         arr[k] = L[i]
         i += 1
         k += 1
  
     # Copy the remaining elements of R[], if there
-    # are any
     while j < n2:
         arr[k] = R[j]
         j += 1
         k += 1
- 
-# l is for left index and r is right index of the
-# sub-array of arr to be sorted
- 
- 
+
 def mergeSort(arr, l, r, key):
     if l < r:
- 
-        # Same as (l+r)//2, but avoids overflow for
-        # large l and h
         m = l+(r-l)//2
  
         # Sort first and second halves
@@ -228,9 +216,7 @@ def functions(database, dataName, data, allTypes, allTableNicks, groups, outFile
         outFile.writelines(lines)
 
     else:
-        
         newData = []
-        
         dictList = []
         dicti = {}
         descartes(database, groups, data, dictList, dicti, allTableNicks, allIndexes, allIndexFiles)
@@ -327,11 +313,33 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables, groups
     for tb in database:
         if tb.attrib['tableName'] == tableName:
             table = tb
+            break
 
     if table == None:
         return -3 # Trying to delete from non-existing table
 
+    tableColumns = table.findall('.//Structure//Attribute')
+    for dat in dataName:
+        if dat != '*':
+            if 'AVG' in dat or 'COUNT' in dat or 'MAX' in dat or 'MIN' in dat or 'SUM' in dat:
+                temp = dat.split('(')[1]
+                columnN = temp.split(')')[0]
+                columnNick = columnN.split('.')[0]
+                columnName = columnN.split('.')[1]
+            else:
+                columnNick = dat.split('.')[0]
+                columnName = dat.split('.')[1]
 
+            tbColumn = None
+            if columnNick == tableNick:
+                for column in tableColumns:
+                    if column.attrib['attributeName'] == columnName:
+                        tbColumn = column
+                        break
+                if tbColumn == None:
+                    return -7 # trying to select non existing column
+        elif dat == '*' and groups != None:
+            return -9
     allTableNames = []
     allTableNames.append(tableName)
     allTableNicks = []
@@ -348,6 +356,7 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables, groups
             allTableNicks.append(joinT[1])
             joinTableNicks.append(joinT[1])
             joinTableConditions.append(joinT[3])
+
 
     allPks = []
     allCollections = []
@@ -406,12 +415,12 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables, groups
             if ind == dataName[0].split('.')[1]:
                 indexfile = indexfiles[i]
         localCollection = mongoclient.get_database(databaseName).get_collection(indexfile)
-        data = localCollection.find();
+        data = localCollection.find()
         print("%35s\n"%(dataName[0]))
         for dat in data:
             print("%35s"%(dat["_id"]))
         print()
-        return 0;
+        return 0
 
     for i, joinTableName in enumerate(joinTableNames):
 
@@ -559,10 +568,9 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables, groups
         for j, tNick in enumerate(allTableNicks):
             if tc.split('.')[0] == tNick:
                 tableIndex = j
-                break;
+                break
         data = select(databaseName, filteredData[tableIndex], tc, allPks[tableIndex], allTypes[tableIndex], comparators[i], ops[i] , antiops[i], operators[i], allCollections[tableIndex], allIndexes[tableIndex], allIndexFiles[tableIndex])
         filteredData[tableIndex] = data
-
 
     data = filteredData[0]
     joined = []
@@ -660,7 +668,7 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables, groups
                 if compThis in ids:
                     tempData.append(dat)
                     if len(tempData) == len(ids):
-                        break;
+                        break
             
             filteredData[joinIndex] = tempData
 
@@ -681,6 +689,8 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables, groups
     if groups != None:
         groups = groups.split(' ')
         for group in groups:
+            if group not in dataName:
+                return -8               # trying to group by with non selected column
             mergeSort(data, 0, length, group)
 
 
@@ -688,7 +698,9 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables, groups
     
     if len(data) != 0:
         if len(dataName) == 1 and dataName[0] == '*': # Select * case
-            
+
+            if groups != None:
+                return -9
             msg = ''
             lines = ''
             for key in data[0].keys():
