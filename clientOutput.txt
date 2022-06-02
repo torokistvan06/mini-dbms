@@ -1,0 +1,8 @@
+                               c.ID                           c.Nation
+
+                                  0                            Germany
+                                  1                             France
+                                  2                             Russia
+                                  3                            Hungary
+                                  4                            Hungary
+

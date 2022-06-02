@@ -7,7 +7,7 @@ import pymongo
 import re
 
 global serverPort
-serverPort = 50005
+serverPort = 5035
 
 def merge(arr, l, m, r, key):
     n1 = m - l + 1
@@ -163,6 +163,7 @@ def functions(database, dataName, data, allTypes, allTableNicks, groups, outFile
         print('\n')
         lines += '\n'
         outFile.writelines(lines)
+        return 0
 
     elif groups == None:
 
@@ -214,9 +215,9 @@ def functions(database, dataName, data, allTypes, allTableNicks, groups, outFile
         print(msg)
         lines += msg
         outFile.writelines(lines)
+        return 0
 
     else:
-        newData = []
         dictList = []
         dicti = {}
         descartes(database, groups, data, dictList, dicti, allTableNicks, allIndexes, allIndexFiles)
@@ -261,7 +262,7 @@ def functions(database, dataName, data, allTypes, allTableNicks, groups, outFile
                             if columnType == 'float':
                                 list.append(float(dat[column]))
                     else:
-                        list = data
+                        list = datas[i]
                 
                     if func == 'AVG':
                         if len(list) != 0:
@@ -287,12 +288,14 @@ def functions(database, dataName, data, allTypes, allTableNicks, groups, outFile
         for dat in dictList:
             msg = ''
             for key in dat.keys():
-                msg += "%35s"%(dat[key])
+                if key in dataName:
+                    msg += "%35s"%(dat[key])
             print(msg)
             lines += (msg + '\n')
         print('\n')
         lines += '\n'
         outFile.writelines(lines)
+        return 0
 
 
 def selectData(databaseName, dataName, tableName, conditions, joinTables, groups):
@@ -324,6 +327,8 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables, groups
             if 'AVG' in dat or 'COUNT' in dat or 'MAX' in dat or 'MIN' in dat or 'SUM' in dat:
                 temp = dat.split('(')[1]
                 columnN = temp.split(')')[0]
+                if columnN == '*':
+                    continue
                 columnNick = columnN.split('.')[0]
                 columnName = columnN.split('.')[1]
             else:
@@ -338,6 +343,7 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables, groups
                         break
                 if tbColumn == None:
                     return -7 # trying to select non existing column
+
         elif dat == '*' and groups != None:
             return -9
     allTableNames = []
@@ -410,6 +416,8 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables, groups
     allAttribs.append(attribs)
 
     if conditions == None and len(dataName) == 1 and dataName[0] != '*' and dataName[0] != 'COUNT(*)' and dataName[0].split('.')[1] in indexes:
+        outFile = open('clientOutput.txt', 'w')
+        lines = ''
         indexfile = None
         for i, ind in enumerate(indexes):
             if ind == dataName[0].split('.')[1]:
@@ -417,9 +425,14 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables, groups
         localCollection = mongoclient.get_database(databaseName).get_collection(indexfile)
         data = localCollection.find()
         print("%35s\n"%(dataName[0]))
+        lines += ("%35s\n\n"%(dataName[0]))
         for dat in data:
             print("%35s"%(dat["_id"]))
+            lines += ("%35s\n"%(dat["_id"]))
         print()
+        lines += '\n'
+        outFile.writelines(lines)
+        outFile.close()
         return 0
 
     for i, joinTableName in enumerate(joinTableNames):
@@ -688,9 +701,15 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables, groups
     length = len(data) - 1
     if groups != None:
         groups = groups.split(' ')
-        for group in groups:
-            if group not in dataName:
-                return -8               # trying to group by with non selected column
+        for name in dataName:
+            try:
+                tmp = name.split('(')[1]
+            except:
+                if not name in groups:
+                    return -8
+
+    if groups != None:
+        for group in groups:           
             mergeSort(data, 0, length, group)
 
 
