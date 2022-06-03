@@ -1,195 +1,274 @@
 <Databases>
-	<DataBase dataBaseName="University">
-		<Table tableName="disciplines" rowLength="3">
+	<DataBase dataBaseName="shop">
+		<Table tableName="customers" rowLength="7">
 			<Structure>
-				<Attribute attributeName="DiscID" type="string" />
-				<Attribute attributeName="DName" type="string" />
-				<Attribute attributeName="CreditNr" type="int" />
+				<Attribute attributeName="customerID" type="int" />
+				<Attribute attributeName="customerName" type="string" />
+				<Attribute attributeName="customerFirstName" type="string" />
+				<Attribute attributeName="customerLastName" type="string" />
+				<Attribute attributeName="phone" type="string" />
+				<Attribute attributeName="postalCode" type="string" />
+				<Attribute attributeName="creditLimit" type="int" />
 			</Structure>
 			<primaryKey>
-				<pkAttribute>DiscID</pkAttribute>
-			</primaryKey>
-			<uniqueKeys />
-			<foreignKeys />
-			<IndexFiles>
-				<IndexFile indexName="disciplines.CreditNr.ind" isUnique="0">
-					<IndexAttributes>
-						<IAttribute>CreditNr</IAttribute>
-					</IndexAttributes>
-				</IndexFile>
-			</IndexFiles>
-			<ReferencedBy>
-				<Structure>
-					<Table>marks</Table>
-					<RefAttribute>DiscID</RefAttribute>
-				</Structure>
-			</ReferencedBy>
-		</Table>
-		<Table tableName="specialization" rowLength="3">
-			<Structure>
-				<Attribute attributeName="SpecID" type="string" />
-				<Attribute attributeName="SpecName" type="string" />
-				<Attribute attributeName="Language" type="string" />
-			</Structure>
-			<primaryKey>
-				<pkAttribute>SpecID</pkAttribute>
+				<pkAttribute>customerID</pkAttribute>
 			</primaryKey>
 			<uniqueKeys />
 			<foreignKeys />
 			<IndexFiles />
 			<ReferencedBy>
-				<Structure>
-					<Table>groups</Table>
-					<RefAttribute>SpecID</RefAttribute>
-				</Structure>
+				<RefStructure>
+					<Table>employees</Table>
+					<RefAttribute>customerID</RefAttribute>
+				</RefStructure>
+			</ReferencedBy>
+			<ReferencedBy>
+				<RefStructure>
+					<Table>orders</Table>
+					<RefAttribute>customerID</RefAttribute>
+				</RefStructure>
 			</ReferencedBy>
 		</Table>
-		<Table tableName="groups" rowLength="2">
+		<Table tableName="states" rowLength="4">
 			<Structure>
-				<Attribute attributeName="GroupID" type="int" />
-				<Attribute attributeName="SpecID" type="string" />
+				<Attribute attributeName="stateID" type="int" />
+				<Attribute attributeName="stateName" type="string" />
+				<Attribute attributeName="population" type="int" />
+				<Attribute attributeName="gdp" type="int" />
 			</Structure>
 			<primaryKey>
-				<pkAttribute>GroupID</pkAttribute>
+				<pkAttribute>stateID</pkAttribute>
+			</primaryKey>
+			<uniqueKeys />
+			<foreignKeys />
+			<IndexFiles />
+			<ReferencedBy>
+				<RefStructure>
+					<Table>cities</Table>
+					<RefAttribute>stateID</RefAttribute>
+				</RefStructure>
+			</ReferencedBy>
+			<ReferencedBy>
+				<RefStructure>
+					<Table>cities</Table>
+					<RefAttribute>stateID</RefAttribute>
+				</RefStructure>
+			</ReferencedBy>
+		</Table>
+		<Table tableName="cities" rowLength="4">
+			<Structure>
+				<Attribute attributeName="cityID" type="int" />
+				<Attribute attributeName="stateID" type="int" />
+				<Attribute attributeName="cityName" type="string" />
+				<Attribute attributeName="population" type="int" />
+			</Structure>
+			<primaryKey>
+				<pkAttribute>cityID</pkAttribute>
 			</primaryKey>
 			<uniqueKeys />
 			<foreignKeys>
 				<foreignKey>
-					<foreignAttribute>SpecID</foreignAttribute>
+					<foreignAttribute>stateID</foreignAttribute>
 					<references>
-						<refTable>specialization</refTable>
-						<refAttr>SpecID</refAttr>
+						<refTable>states</refTable>
+						<refAttr>stateID</refAttr>
 					</references>
 				</foreignKey>
 			</foreignKeys>
 			<IndexFiles>
-				<IndexFile indexName="groups.SpecID.ind" isUnique="0">
+				<IndexFile indexName="cities.stateID.ind" isUnique="0">
 					<IndexAttributes>
-						<IAttribute>SpecID</IAttribute>
+						<IAttribute>stateID</IAttribute>
 					</IndexAttributes>
 				</IndexFile>
 			</IndexFiles>
 			<ReferencedBy>
-				<Structure>
-					<Table>students</Table>
-					<RefAttribute>GroupID</RefAttribute>
-				</Structure>
+				<RefStructure>
+					<Table>offices</Table>
+					<RefAttribute>cityID</RefAttribute>
+				</RefStructure>
 			</ReferencedBy>
 		</Table>
-		<Table tableName="students" rowLength="4">
+		<Table tableName="offices" rowLength="6">
 			<Structure>
-				<Attribute attributeName="StudID" type="int" />
-				<Attribute attributeName="GroupID" type="int" />
-				<Attribute attributeName="StudName" type="string" />
-				<Attribute attributeName="Email" type="string" />
+				<Attribute attributeName="officeID" type="int" />
+				<Attribute attributeName="officeName" type="string" />
+				<Attribute attributeName="cityID" type="int" />
+				<Attribute attributeName="phone" type="string" />
+				<Attribute attributeName="address" type="string" />
+				<Attribute attributeName="postalCode" type="int" />
 			</Structure>
 			<primaryKey>
-				<pkAttribute>StudID</pkAttribute>
+				<pkAttribute>officeID</pkAttribute>
 			</primaryKey>
 			<uniqueKeys />
 			<foreignKeys>
 				<foreignKey>
-					<foreignAttribute>GroupID</foreignAttribute>
+					<foreignAttribute>cityID</foreignAttribute>
 					<references>
-						<refTable>groups</refTable>
-						<refAttr>GroupID</refAttr>
+						<refTable>cities</refTable>
+						<refAttr>cityID</refAttr>
 					</references>
 				</foreignKey>
 			</foreignKeys>
 			<IndexFiles>
-				<IndexFile indexName="students.GroupID.ind" isUnique="0">
+				<IndexFile indexName="offices.cityID.ind" isUnique="0">
 					<IndexAttributes>
-						<IAttribute>GroupID</IAttribute>
+						<IAttribute>cityID</IAttribute>
 					</IndexAttributes>
 				</IndexFile>
 			</IndexFiles>
 			<ReferencedBy>
-				<Structure>
-					<Table>marks</Table>
-					<RefAttribute>StudID</RefAttribute>
-				</Structure>
+				<RefStructure>
+					<Table>employees</Table>
+					<RefAttribute>officeID</RefAttribute>
+				</RefStructure>
 			</ReferencedBy>
 		</Table>
-		<Table tableName="marks" rowLength="4">
+		<Table tableName="employees" rowLength="7">
 			<Structure>
-				<Attribute attributeName="MarkID" type="int" />
-				<Attribute attributeName="StudID" type="int" />
-				<Attribute attributeName="DiscID" type="string" />
-				<Attribute attributeName="Mark" type="int" />
+				<Attribute attributeName="employeeID" type="int" />
+				<Attribute attributeName="customerID" type="int" />
+				<Attribute attributeName="lastName" type="string" />
+				<Attribute attributeName="firstName" type="string" />
+				<Attribute attributeName="officeID" type="int" />
+				<Attribute attributeName="email" type="string" />
+				<Attribute attributeName="jobTitle" type="string" />
 			</Structure>
 			<primaryKey>
-				<pkAttribute>MarkID</pkAttribute>
+				<pkAttribute>employeeID</pkAttribute>
 			</primaryKey>
 			<uniqueKeys />
 			<foreignKeys>
 				<foreignKey>
-					<foreignAttribute>StudID</foreignAttribute>
+					<foreignAttribute>customerID</foreignAttribute>
 					<references>
-						<refTable>students</refTable>
-						<refAttr>StudID</refAttr>
+						<refTable>customers</refTable>
+						<refAttr>customerID</refAttr>
 					</references>
 				</foreignKey>
 				<foreignKey>
-					<foreignAttribute>DiscID</foreignAttribute>
+					<foreignAttribute>officeID</foreignAttribute>
 					<references>
-						<refTable>disciplines</refTable>
-						<refAttr>DiscID</refAttr>
+						<refTable>offices</refTable>
+						<refAttr>officeID</refAttr>
 					</references>
 				</foreignKey>
 			</foreignKeys>
 			<IndexFiles>
-				<IndexFile indexName="marks.StudID.ind" isUnique="0">
+				<IndexFile indexName="employees.customerID.ind" isUnique="0">
 					<IndexAttributes>
-						<IAttribute>StudID</IAttribute>
+						<IAttribute>customerID</IAttribute>
 					</IndexAttributes>
 				</IndexFile>
-				<IndexFile indexName="marks.DiscID.ind" isUnique="0">
+				<IndexFile indexName="employees.officeID.ind" isUnique="0">
 					<IndexAttributes>
-						<IAttribute>DiscID</IAttribute>
-					</IndexAttributes>
-				</IndexFile>
-			</IndexFiles>
-		</Table>
-		<Table tableName="SubGroups" rowLength="2">
-			<Structure>
-				<Attribute attributeName="SubGroupID" type="int" />
-				<Attribute attributeName="Name" type="string" />
-			</Structure>
-			<primaryKey>
-				<pkAttribute>SubGroupID</pkAttribute>
-			</primaryKey>
-			<uniqueKeys>
-				<UniqueAttribute>Name</UniqueAttribute>
-			</uniqueKeys>
-			<foreignKeys />
-			<IndexFiles>
-				<IndexFile indexName="SubGroups.Name.ind" isUnique="1">
-					<IndexAttributes>
-						<IAttribute>Name</IAttribute>
+						<IAttribute>officeID</IAttribute>
 					</IndexAttributes>
 				</IndexFile>
 			</IndexFiles>
 		</Table>
-		<Table tableName="Class" rowLength="2">
+		<Table tableName="products" rowLength="6">
 			<Structure>
-				<Attribute attributeName="ClassID" type="int" />
-				<Attribute attributeName="ClassName" type="string" />
+				<Attribute attributeName="productID" type="int" />
+				<Attribute attributeName="productName" type="string" />
+				<Attribute attributeName="productVendor" type="string" />
+				<Attribute attributeName="productDescription" type="string" />
+				<Attribute attributeName="quantityInStock" type="int" />
+				<Attribute attributeName="buyPrice" type="int" />
 			</Structure>
 			<primaryKey>
-				<pkAttribute>ClassID</pkAttribute>
+				<pkAttribute>productID</pkAttribute>
 			</primaryKey>
 			<uniqueKeys />
 			<foreignKeys />
+			<IndexFiles />
+			<ReferencedBy>
+				<RefStructure>
+					<Table>orderdetails</Table>
+					<RefAttribute>productID</RefAttribute>
+				</RefStructure>
+			</ReferencedBy>
+		</Table>
+		<Table tableName="orders" rowLength="6">
+			<Structure>
+				<Attribute attributeName="orderID" type="int" />
+				<Attribute attributeName="orderDate" type="date" />
+				<Attribute attributeName="requiredDate" type="date" />
+				<Attribute attributeName="shippedDate" type="date" />
+				<Attribute attributeName="status" type="string" />
+				<Attribute attributeName="customerID" type="int" />
+			</Structure>
+			<primaryKey>
+				<pkAttribute>orderID</pkAttribute>
+			</primaryKey>
+			<uniqueKeys />
+			<foreignKeys>
+				<foreignKey>
+					<foreignAttribute>customerID</foreignAttribute>
+					<references>
+						<refTable>customers</refTable>
+						<refAttr>customerID</refAttr>
+					</references>
+				</foreignKey>
+			</foreignKeys>
 			<IndexFiles>
-				<IndexFile indexName="Class.ClassName.ind" isUnique="0">
+				<IndexFile indexName="orders.customerID.ind" isUnique="0">
 					<IndexAttributes>
-						<IAttribute>ClassName</IAttribute>
+						<IAttribute>customerID</IAttribute>
+					</IndexAttributes>
+				</IndexFile>
+			</IndexFiles>
+			<ReferencedBy>
+				<RefStructure>
+					<Table>orderdetails</Table>
+					<RefAttribute>orderID</RefAttribute>
+				</RefStructure>
+			</ReferencedBy>
+		</Table>
+		<Table tableName="orderdetails" rowLength="5">
+			<Structure>
+				<Attribute attributeName="detailsID" type="int" />
+				<Attribute attributeName="orderID" type="int" />
+				<Attribute attributeName="productID" type="int" />
+				<Attribute attributeName="quantityOrdered" type="int" />
+				<Attribute attributeName="priceEach" type="int" />
+			</Structure>
+			<primaryKey>
+				<pkAttribute>detailsID</pkAttribute>
+			</primaryKey>
+			<uniqueKeys />
+			<foreignKeys>
+				<foreignKey>
+					<foreignAttribute>orderID</foreignAttribute>
+					<references>
+						<refTable>orders</refTable>
+						<refAttr>orderID</refAttr>
+					</references>
+				</foreignKey>
+				<foreignKey>
+					<foreignAttribute>productID</foreignAttribute>
+					<references>
+						<refTable>products</refTable>
+						<refAttr>productID</refAttr>
+					</references>
+				</foreignKey>
+			</foreignKeys>
+			<IndexFiles>
+				<IndexFile indexName="orderdetails.orderID.ind" isUnique="0">
+					<IndexAttributes>
+						<IAttribute>orderID</IAttribute>
+					</IndexAttributes>
+				</IndexFile>
+				<IndexFile indexName="orderdetails.productID.ind" isUnique="0">
+					<IndexAttributes>
+						<IAttribute>productID</IAttribute>
 					</IndexAttributes>
 				</IndexFile>
 			</IndexFiles>
 		</Table>
 	</DataBase>
-	<DataBase dataBaseName="Shop">
+	<DataBase dataBaseName="Test">
 		<Table tableName="customers" rowLength="7">
 			<Structure>
 				<Attribute attributeName="ID" type="int" />

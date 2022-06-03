@@ -7,7 +7,7 @@ import pymongo
 import re
 
 global serverPort
-serverPort = 5035
+serverPort = 50034
 
 def merge(arr, l, m, r, key):
     n1 = m - l + 1
@@ -27,7 +27,7 @@ def merge(arr, l, m, r, key):
     k = l     # Initial index of merged subarray
  
     while i < n1 and j < n2:
-        if L[i][key] <= R[j][key]:
+        if (L[i][key] != 'NULL' and R[j][key] == 'NULL') or L[i][key] <= R[j][key]:
             arr[k] = L[i]
             i += 1
         else:
@@ -148,8 +148,9 @@ def functions(database, dataName, data, allTypes, allTableNicks, groups, outFile
     if not functionsUsed:
         msg = ''
         lines = ''
-        for key in dataName:
-            msg += "%35s"%(key)
+        for key in data[0].keys():
+            if key in dataName:
+                msg += "%35s"%(key)
         print(msg)
         print('\n')
         lines += (msg + '\n\n')
@@ -353,16 +354,19 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables, groups
     joinTableNames = []
     joinTableNicks = []
     joinTableConditions = []
+    joinTypes = []
     if joinTables != '':
         joinTables = joinTables.split(sep = " and ")
         for jt in joinTables:
             joinT = jt.split(sep = ' ')
-            allTableNames.append(joinT[0])
-            joinTableNames.append(joinT[0])
-            allTableNicks.append(joinT[1])
-            joinTableNicks.append(joinT[1])
-            joinTableConditions.append(joinT[3])
+            joinTypes.append(joinT[0])
+            allTableNames.append(joinT[2])
+            joinTableNames.append(joinT[2])
+            allTableNicks.append(joinT[3])
+            joinTableNicks.append(joinT[3])
+            joinTableConditions.append(joinT[5])
 
+    print(joinTypes)
 
     allPks = []
     allCollections = []
@@ -450,7 +454,7 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables, groups
 
         # Save the primary keys of tables
 
-        allPks.append(joinTableNicks[i] + '.' + table.findall('.//primaryKey//pkAttribute')[0].text)
+        allPks.append(joinTableNicks[i] + '.' + joinTable.findall('.//primaryKey//pkAttribute')[0].text)
 
         # Get table collections
         allCollections.append(mongoclient.get_database(databaseName).get_collection(joinTableName))
@@ -588,7 +592,7 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables, groups
     data = filteredData[0]
     joined = []
     joined.append(0)
-    for cond in joinTableConditions:
+    for index, cond in enumerate(joinTableConditions):
         tableOneIndex = None
         tableTwoIndex = None
         tableOneComparator = cond.split(sep = '=')[0]
@@ -621,79 +625,158 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables, groups
         newData = []
         joinComparatorAdd = joinComparator.split('.')[1]
     
-        if not joinComparatorAdd in allIndexes[joinIndex]:
+        # if not joinComparatorAdd in allIndexes[joinIndex]:
+
+        if joinTypes[index] == 'inner':
             for dat in data:
+                dicti = {}
                 for dataTwo in filteredData[joinIndex]: 
                     if str(dat[dataComparator]) == str(dataTwo[joinComparator]):
-                        dicti = {}
                         for key in dat.keys():
                             dicti[key] = dat[key]
                         for key in dataTwo.keys():
                             dicti[key] = dataTwo[key]
                         newData.append(dicti)
+
+        elif joinTypes[index] == 'left':
+            for dat in data:
+                leftJoined = False
+                dicti = {}
+                for dataTwo in filteredData[joinIndex]: 
+                    if str(dat[dataComparator]) == str(dataTwo[joinComparator]):
+                        leftJoined = True
+                        for key in dat.keys():
+                            dicti[key] = dat[key]
+                        for key in dataTwo.keys():
+                            dicti[key] = dataTwo[key]
+                        newData.append(dicti)
+                if not leftJoined:
+                    for key in dat.keys():
+                        dicti[key] = dat[key]
+                    dicti[allPks[index + 1]] = 'NULL'
+                    for key in allStructures[joinIndex]:
+                        dicti[allTableNicks[joinIndex] + '.' + key] = 'NULL'
+                    newData.append(dicti)
+
+        elif joinTypes[index] == 'right':
+            for dataTwo in filteredData[joinIndex]:
+                rightJoined = False
+                dicti = {}
+                for dat in data: 
+                    if str(dat[dataComparator]) == str(dataTwo[joinComparator]):
+                        rightJoined = True
+                        for key in dat.keys():
+                            dicti[key] = dat[key]
+                        for key in dataTwo.keys():
+                            dicti[key] = dataTwo[key]
+                        newData.append(dicti)
+                if not rightJoined:
+                    for key in data[0].keys():
+                        dicti[key] = 'NULL'
+                    for key in dataTwo.keys():
+                        dicti[key] = dataTwo[key]
+                    newData.append(dicti)
+        
+        elif joinTypes[index] == 'full':
+            for dat in data:
+                leftJoined = False
+                dicti = {}
+                for dataTwo in filteredData[joinIndex]: 
+                    if str(dat[dataComparator]) == str(dataTwo[joinComparator]):
+                        leftJoined = True
+                        for key in dat.keys():
+                            dicti[key] = dat[key]
+                        for key in dataTwo.keys():
+                            dicti[key] = dataTwo[key]
+                        newData.append(dicti)
+                if not leftJoined:
+                    for key in dat.keys():
+                        dicti[key] = dat[key]
+                    dicti[allPks[index + 1]] = 'NULL'
+                    for key in allStructures[joinIndex]:
+                        dicti[allTableNicks[joinIndex] + '.' + key] = 'NULL'
+                    newData.append(dicti)
+            
+            for dataTwo in filteredData[joinIndex]:
+                rightJoined = False
+                dicti = {}
+                for dat in data: 
+                    if str(dat[dataComparator]) == str(dataTwo[joinComparator]):
+                        rightJoined = True
+                if not rightJoined:
+                    for key in data[0].keys():
+                        dicti[key] = 'NULL'
+                    for key in dataTwo.keys():
+                        dicti[key] = dataTwo[key]
+                    newData.append(dicti)
+        
         else:
-            localCollection = None
+            return -11
             
-            if joinComparator != allPks[joinIndex]:
-                for i, index in enumerate(allIndexes[joinIndex]):
-                    if index == joinComparator.split('.')[1]:
-                        localCollection = mongoclient.get_database(databaseName).get_collection(allIndexFiles[joinIndex][i])
-            else:
-                localCollection = allCollections[joinIndex]
-
-            
-            ids = []
-            pkType = None
-            for dat in data:
-                localComparator = dat[dataComparator]
-                localCompType = allTypes[dataIndex][dataComparator]
-                if localCompType == 'int':
-                    localComparator = int(localComparator)
-                if localCompType == 'float':
-                    localComparator = float(localComparator)
-                if localCompType == 'bit':
-                    localComparator = bool(localComparator)
-                if joinComparator == allPks[joinIndex]:
-                    dataTwos = localCollection.find( {'_id': localComparator} )
-                else:
-                    dataTwos = localCollection.find( {'_id': localComparator} )
-
-                for dataTwo in dataTwos:
-                    oldIds = dataTwo['Value'].split('#')
-                    pkType = allTypes[joinIndex][joinComparator]
-                    for id in oldIds:
-                        if pkType == 'int':
-                            ids.append(int(id))
-                        if pkType == 'float':  
-                            ids.append(float(id))
-                        if pkType == 'bit':
-                            ids.append(bool(id))
                 
-            tempData = []
-            for dat in filteredData[joinIndex]:
-                compThis = dat[allPks[joinIndex]]
-                if pkType == 'int':
-                    compThis = int(compThis)
-                if pkType == 'float':  
-                    compThis = float(compThis)
-                if pkType == 'bit':
-                    compThis = bool(compThis)
-                if compThis in ids:
-                    tempData.append(dat)
-                    if len(tempData) == len(ids):
-                        break
+        # else:
+        #     localCollection = None
             
-            filteredData[joinIndex] = tempData
+        #     if joinComparator != allPks[joinIndex]:
+        #         for i, index in enumerate(allIndexes[joinIndex]):
+        #             if index == joinComparator.split('.')[1]:
+        #                 localCollection = mongoclient.get_database(databaseName).get_collection(allIndexFiles[joinIndex][i])
+        #     else:
+        #         localCollection = allCollections[joinIndex]
 
-            for dat in data:
-                for dataTwo in filteredData[joinIndex]: 
-                    if str(dat[dataComparator]) == str(dataTwo[joinComparator]):
-                        dicti = {}
-                        for key in dat.keys():
-                            dicti[key] = dat[key]
-                        for key in dataTwo.keys():
-                            dicti[key] = dataTwo[key]
-                        newData.append(dicti)
+            
+        #     ids = []
+        #     pkType = None
+        #     for dat in data:
+        #         localComparator = dat[dataComparator]
+        #         localCompType = allTypes[dataIndex][dataComparator]
+        #         if localCompType == 'int':
+        #             localComparator = int(localComparator)
+        #         if localCompType == 'float':
+        #             localComparator = float(localComparator)
+        #         if localCompType == 'bit':
+        #             localComparator = bool(localComparator)
+        #         if joinComparator == allPks[joinIndex]:
+        #             dataTwos = localCollection.find( {'_id': localComparator} )
+        #         else:
+        #             dataTwos = localCollection.find( {'_id': localComparator} )
+
+        #         for dataTwo in dataTwos:
+        #             oldIds = dataTwo['Value'].split('#')
+        #             pkType = allTypes[joinIndex][joinComparator]
+        #             for id in oldIds:
+        #                 if pkType == 'int':
+        #                     ids.append(int(id))
+        #                 if pkType == 'float':  
+        #                     ids.append(float(id))
+        #                 if pkType == 'bit':
+        #                     ids.append(bool(id))
+                
+        #     tempData = []
+        #     for dat in filteredData[joinIndex]:
+        #         compThis = dat[allPks[joinIndex]]
+        #         if pkType == 'int':
+        #             compThis = int(compThis)
+        #         if pkType == 'float':  
+        #             compThis = float(compThis)
+        #         if pkType == 'bit':
+        #             compThis = bool(compThis)
+        #         if compThis in ids:
+        #             tempData.append(dat)
+        #             if len(tempData) == len(ids):
+        #                 break
+            
+        #     filteredData[joinIndex] = tempData
+
+        #     for dat in data:
+        #         for dataTwo in filteredData[joinIndex]: 
+        #             if str(dat[dataComparator]) == str(dataTwo[joinComparator]):
+        #                 dicti = {}
+        #                 for key in dat.keys():
+        #                     dicti[key] = dat[key]
+        #                 for key in dataTwo.keys():
+        #                     dicti[key] = dataTwo[key]
+        #                 newData.append(dicti)
 
         data = newData
         joined.append(joinIndex)

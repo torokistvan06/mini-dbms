@@ -81,6 +81,8 @@ class SelectFrame:
             messagebox.showerror("Error", "Cannot group by on SELECT *")
         elif msg == '-10':
             messagebox.showerror("Error", "Row referenced by child table")
+        elif msg == '-11':
+            messagebox.showerror("Error", "Unsupported/Invalid type of join")
             
         outFile = open('clientOutput.txt', 'r')
         print(outFile.read())
