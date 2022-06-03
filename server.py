@@ -623,9 +623,6 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables, groups
 
 
         newData = []
-        joinComparatorAdd = joinComparator.split('.')[1]
-    
-        # if not joinComparatorAdd in allIndexes[joinIndex]:
 
         if joinTypes[index] == 'inner':
             for dat in data:
@@ -713,70 +710,6 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables, groups
         else:
             return -11
             
-                
-        # else:
-        #     localCollection = None
-            
-        #     if joinComparator != allPks[joinIndex]:
-        #         for i, index in enumerate(allIndexes[joinIndex]):
-        #             if index == joinComparator.split('.')[1]:
-        #                 localCollection = mongoclient.get_database(databaseName).get_collection(allIndexFiles[joinIndex][i])
-        #     else:
-        #         localCollection = allCollections[joinIndex]
-
-            
-        #     ids = []
-        #     pkType = None
-        #     for dat in data:
-        #         localComparator = dat[dataComparator]
-        #         localCompType = allTypes[dataIndex][dataComparator]
-        #         if localCompType == 'int':
-        #             localComparator = int(localComparator)
-        #         if localCompType == 'float':
-        #             localComparator = float(localComparator)
-        #         if localCompType == 'bit':
-        #             localComparator = bool(localComparator)
-        #         if joinComparator == allPks[joinIndex]:
-        #             dataTwos = localCollection.find( {'_id': localComparator} )
-        #         else:
-        #             dataTwos = localCollection.find( {'_id': localComparator} )
-
-        #         for dataTwo in dataTwos:
-        #             oldIds = dataTwo['Value'].split('#')
-        #             pkType = allTypes[joinIndex][joinComparator]
-        #             for id in oldIds:
-        #                 if pkType == 'int':
-        #                     ids.append(int(id))
-        #                 if pkType == 'float':  
-        #                     ids.append(float(id))
-        #                 if pkType == 'bit':
-        #                     ids.append(bool(id))
-                
-        #     tempData = []
-        #     for dat in filteredData[joinIndex]:
-        #         compThis = dat[allPks[joinIndex]]
-        #         if pkType == 'int':
-        #             compThis = int(compThis)
-        #         if pkType == 'float':  
-        #             compThis = float(compThis)
-        #         if pkType == 'bit':
-        #             compThis = bool(compThis)
-        #         if compThis in ids:
-        #             tempData.append(dat)
-        #             if len(tempData) == len(ids):
-        #                 break
-            
-        #     filteredData[joinIndex] = tempData
-
-        #     for dat in data:
-        #         for dataTwo in filteredData[joinIndex]: 
-        #             if str(dat[dataComparator]) == str(dataTwo[joinComparator]):
-        #                 dicti = {}
-        #                 for key in dat.keys():
-        #                     dicti[key] = dat[key]
-        #                 for key in dataTwo.keys():
-        #                     dicti[key] = dataTwo[key]
-        #                 newData.append(dicti)
 
         data = newData
         joined.append(joinIndex)
