@@ -7,7 +7,7 @@ import pymongo
 import re
 
 global serverPort
-serverPort = 50045
+serverPort = 50047
 
 def merge(arr, l, m, r, key):
     n1 = m - l + 1
@@ -119,18 +119,10 @@ def descartes(database, groups, data, dictList, dicti, allTableNicks, allIndexes
                 indexIndex = i
                 break
 
-        if indexIndex == None:
-            for dat in data:
-                if not dat[g] in usedgroups:
-                    usedgroups.append(dat[g])
-                    dicti[g] = dat[g]
-                    descartes(database, groups[1:],data, dictList, dicti, allTableNicks, allIndexes, allIndexFiles)
-                    dictList.append(deepcopy(dicti))
-        else:
-            localCollection = mongoclient.get_database(database).get_collection(allIndexFiles[tableIndex][indexIndex])
-            localData = localCollection.find()
-            for dat in localData:
-                dicti[g] = str(dat['_id'])
+        for dat in data:
+            if not dat[g] in usedgroups:
+                usedgroups.append(dat[g])
+                dicti[g] = dat[g]
                 descartes(database, groups[1:],data, dictList, dicti, allTableNicks, allIndexes, allIndexFiles)
                 dictList.append(deepcopy(dicti))
 
@@ -230,9 +222,9 @@ def functions(database, dataName, data, allTypes, allTableNicks, groups, outFile
         
         dictList = newDictList
         datas = [[] for _ in range(len(dictList))]
+        removeThis = []
 
         for i, dict in enumerate(dictList):
-            print(dict)
             for dat in data:
                 matching = True
                 for key in dict.keys():
@@ -277,6 +269,8 @@ def functions(database, dataName, data, allTypes, allTableNicks, groups, outFile
                     elif func == 'MIN':
                         dict[('MIN(%s)'%(column))] = min(list)
                     elif func == 'COUNT':
+                        if len(list) == 0:
+                            removeThis.append(dict)
                         dict[('COUNT(%s)'%(column))] = len(list)
         
         msg = ''
@@ -286,6 +280,10 @@ def functions(database, dataName, data, allTypes, allTableNicks, groups, outFile
         print(msg)
         print('\n')
         lines += (msg + '\n\n')
+
+        for rm in removeThis:
+            dictList.remove(rm)
+
         for dat in dictList:
             msg = ''
             for key in dat.keys():
