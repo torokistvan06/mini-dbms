@@ -7,7 +7,7 @@ import pymongo
 import re
 
 global serverPort
-serverPort = 50034
+serverPort = 50045
 
 def merge(arr, l, m, r, key):
     n1 = m - l + 1
@@ -402,15 +402,19 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables, groups
     indexes = []
     indexfiles = []
     indexfilesisunique = []
+    nonUniqueIndexes = []
 
+    localNonUniqueIndexes = []
     for i in range(len(indexestmp)):
         indexes.append(indexestmp[i].text)
         indexfiles.append(indexfilestmp[i].attrib["indexName"])
-        indexfilesisunique.append(indexfilestmp[i].attrib["isUnique"])
+        if indexfilestmp[i].attrib["isUnique"] == 0:
+            localNonUniqueIndexes.append(indexfiles[-1])
     
     allIndexes.append(indexes)
     allIndexFiles.append(indexfiles)
     allIndexFileIsUnique.append(indexfilesisunique)
+    nonUniqueIndexes.append(localNonUniqueIndexes)
 
     attribs = [] # Save the attributes of the table
 
@@ -482,15 +486,17 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables, groups
         joinIndex = []
         joinIndexFile = []
         joinIndexFileIsUnique = []
-
+        joinNonUniqueIndexes = []
         for i in range(len(indexestmp)):
             joinIndex.append(indexestmp[i].text)
             joinIndexFile.append(indexfilestmp[i].attrib["indexName"])
-            joinIndexFileIsUnique.append(indexfilestmp[i].attrib["isUnique"])
+            if indexfilestmp[i].attrib["isUnique"] == 0:
+                joinNonUniqueIndexes.append(joinIndexFile)
 
         allIndexes.append(joinIndex)
         allIndexFiles.append(joinIndexFile)
         allIndexFileIsUnique.append(joinIndexFileIsUnique)
+        nonUniqueIndexes.append(joinNonUniqueIndexes)
         # Save the attributes of joined tables for later usage
 
         joinAttrib = [] 
@@ -623,7 +629,9 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables, groups
 
 
         newData = []
-
+        
+        joinComparatorAdd = joinComparator.split('.')[1]
+    
         if joinTypes[index] == 'inner':
             for dat in data:
                 dicti = {}
@@ -709,8 +717,7 @@ def selectData(databaseName, dataName, tableName, conditions, joinTables, groups
         
         else:
             return -11
-            
-
+        
         data = newData
         joined.append(joinIndex)
 
